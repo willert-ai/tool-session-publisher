@@ -1,0 +1,41 @@
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Virtualenvs
+venv/
+.venv/
+env/
+
+# Test / type-check caches
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Secrets
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Claude Code project preferences
+.claude/
+.mcp.json
+
+# Local working files not shipped in this repo
+research/
+planning/handoffs/
+planning/progress.md
+planning/findings.md
+planning/task_plan.md
+planning/PRD_*.md
