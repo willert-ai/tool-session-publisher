@@ -39,3 +39,6 @@ planning/progress.md
 planning/findings.md
 planning/task_plan.md
 planning/PRD_*.md
+
+# Private curated examples corpus (operator-specific voice references)
+skill/prompts/examples.local.md
