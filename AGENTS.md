@@ -17,6 +17,7 @@ Claude Code skill that turns a session wrap-up file into a reviewed draft post f
 - **Authoritative design:** `planning/SPEC.md` (Claude Code skill, manual-paste gateway, 7-stage interactive conversation, drafts saved to `$NOTES_DIR/posts/x/`).
 - **Skill shipped:** `skill/` directory. Files: `SKILL.md`, `helpers/{select,save,thread}.py`, `prompts/drafting-guide.md`. All helpers stdlib-only. Install via `ln -s <repo>/skill ~/.claude/skills/session-publisher`.
 - **Pre-mortem:** `planning/PreMortem-session-publisher-2026-05-11.md` documents 4 Tigers + 3 Elephants identified before the build window and how each was resolved.
+- **Stage 5.5 corpus-mirror (feature thread):** Phase B→C bridge complete 2026-05-16 — `skill/prompts/examples.local.md` carries 45 curated entries, all with `guide_compliance` + `guide_compliance_notes`. Phase C (SKILL.md Stage 5.5 section + `skill/helpers/mirror.py` + `examples-template.md` schema docs) is queued in a fresh session; Transition Boot Prompt embedded in `FERO-Log/2026-05-16 - SESSION_triaged-stage-5-5-corpus-to-45-entries.md`. Authoritative design: `planning/SPEC-corpus-mirror-2026-05-15.md` (note: currently untracked — commit decision pending).
 
 ## Operating principles (deterministic — apply on every session)
 

@@ -35,6 +35,7 @@ htmlcov/
 # Local working files not shipped in this repo
 research/
 planning/handoffs/
+planning/draft/
 planning/progress.md
 planning/findings.md
 planning/task_plan.md
