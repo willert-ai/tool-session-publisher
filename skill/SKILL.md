@@ -203,6 +203,128 @@ Accepted operator instructions (loop until `approve` or `skip`):
 After every edit, re-check the 280-character ceiling and the drafting
 guide's rules 1–23. If a rule is broken, fix it before presenting.
 
+### Stage 5.5 — Style-applied variants (conditional)
+
+Runs only when `skill/prompts/examples.local.md` exists, parses, and yields
+at least one entry that is an honest register match for the approved draft.
+If any precondition fails, **silently skip** Stage 5.5 and proceed to Stage 6
+with the original Stage-5-approved draft.
+
+Stage 5.5 exists because rules-compliant drafts can still feel "off" — voice
+and constraint-disclosure register escape the 23 rules in `drafting-guide.md`.
+The operator's private corpus encodes register that has actually worked in
+publication; Stage 5.5 transfers that register onto the operator's content.
+
+#### 5.5.1 — Load the corpus
+
+```bash
+python3 ~/.claude/skills/session-publisher/helpers/mirror.py
+```
+
+Parse the JSON envelope. Handle each `status` value:
+
+- `"ok"` — proceed to 5.5.2.
+- `"skip"` with `reason: "absent"` — corpus not configured (default for
+  forkers). Output nothing operator-facing. Proceed to Stage 6.
+- `"skip"` with `reason: "empty"` — file exists but yields zero eligible
+  entries. Render one line: `Corpus mirror: no entries available — skipping.`
+  Proceed to Stage 6.
+- `"skip"` with `reason: "io_error"` / `"parse_failed"` — render one line:
+  `Corpus mirror: read failed — skipping.` Proceed to Stage 6.
+
+The skill never fails on corpus issues — same posture as reaction recap.
+
+#### 5.5.2 — Infer draft tags, select 0–2 matches semantically
+
+The corpus is private context, not operator-facing content. Read the
+`entries` list internally and apply the SPEC §3 axis vocabulary:
+
+1. **Infer the approved draft's 7 tags.** Six axes are model judgment:
+   `tone_register`, `hook_structure`, `sentence_rhythm`, `topic_ownership`,
+   `constraint_disclosure`, `topic_area`. The seventh — `length` — is
+   deterministic: `shortform` if `len(body) ≤ 280` else `longform`.
+2. **Vocabulary** is fixed in `prompts/examples-template.md`. Hook
+   structures map 1:1 to `drafting-guide.md` Layer-2 hook templates 6–11
+   when the topic_area is `ai-tooling` / `ai-research` /
+   `agentic-engineering` / `model-release-tracking`; otherwise Layer-1
+   templates 1–5.
+3. **Select up to 2 matches** by honest register fit. Prioritize
+   `tone_register` and `hook_structure` (the load-bearing register axes),
+   then `sentence_rhythm`, `topic_ownership`, `constraint_disclosure`.
+   Use `length` and `topic_area` as tiebreakers. Use `guide_compliance`
+   (1–5) as a final tiebreaker — higher = better — but never as primary
+   ranking; a poor register fit with compliance 5 still loses to a strong
+   register fit with compliance 3.
+4. **Honesty floor.** If no eligible entry is a real register fit, select
+   zero matches and silently skip Stage 5.5. Do not force two when one
+   (or none) is honest. Acceptable to return one match — the prompt
+   collapses gracefully (see 5.5.4).
+
+The corpus entry itself is never rendered to the operator. Only
+style-applied rewrites of the operator's own draft are shown.
+
+#### 5.5.3 — Produce style-applied rewrites
+
+For each selected match, produce a **style-applied rewrite** of the
+approved draft. Preserve:
+
+- The core idea and angle (from Stage 3).
+- All concrete numbers, named technologies, and constraint disclosures
+  from the original draft.
+- The 280-character ceiling if the original was `shortform`.
+- All 23 rules from `drafting-guide.md`. If exemplar register conflicts
+  with a rule, **the rule wins.**
+
+Adjust toward the exemplar:
+
+- Hook structure (move number forward, swap question-reframe for
+  observation-cold, etc.).
+- Sentence rhythm (staccato vs. mid-length-declarative vs. flowing).
+- Tone register (clinical-peer vs. dry-wit vs. reflective-solo vs.
+  provocateur).
+
+If a rewrite cannot honor both the exemplar register and the 280-char
+ceiling, discard that variant. If both variants get discarded, treat as
+"zero clear matches" — skip Stage 5.5 silently.
+
+#### 5.5.4 — Operator-facing prompt
+
+Render exactly:
+
+```
+Stage 5.5 — Style-applied variants
+
+Your approved draft:
+> <original body>
+
+Variant A — style of @<handle> (<tone_register>/<hook_structure>/<sentence_rhythm>):
+> <rewrite A>
+
+Variant B — style of @<handle> (<tone_register>/<hook_structure>/<sentence_rhythm>):
+> <rewrite B>
+
+original  — keep your draft as approved
+A         — use variant A
+B         — use variant B
+iterate   — refine one of these further (specify which + instruction)
+skip      — drop variants, keep original
+```
+
+When only one entry was selected, omit Variant B and collapse the choice
+to `original / A / iterate / skip`.
+
+#### 5.5.5 — Handle the operator response
+
+| Response | Behavior |
+|---|---|
+| `original` / `skip` | Discard variants. Stage 6 receives the original Stage-5-approved draft. |
+| `A` / `B` | Replace the draft body with the selected variant. Proceed to Stage 6. |
+| `iterate <A\|B> <instruction>` | Re-enter Stage 5 with the chosen variant as the new starting draft. After re-approval at Stage 5, Stage 5.5 runs again on the new draft. |
+
+The variant attribution (which `@handle` was the exemplar) is **not**
+stored in the saved post file — the post stands on its own; the corpus
+is a private aid to drafting.
+
 ### Stage 6 — Save to notes directory
 
 Call:
@@ -311,6 +433,12 @@ the `Bash` tool. Each emits JSON on stdout.
 - **`helpers/save.py`** — Stage 6. Writes the approved draft as
   `$NOTES_DIR/posts/x/YYYY-MM-DD_post-NNN.md` with frontmatter. Enforces
   the 280-character ceiling.
+- **`helpers/mirror.py`** — Stage 5.5 (conditional). Parses
+  `prompts/examples.local.md` (operator-private, gitignored), drops
+  `near_duplicate_of` cluster non-representatives, returns eligible
+  entries as JSON. Semantic match/select happens inside Stage 5.5 prose
+  — the helper is a loader, not a scorer. Schema reference:
+  `prompts/examples-template.md`.
 
 ### Folder-naming convention
 

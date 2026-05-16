@@ -1,9 +1,10 @@
 # SPEC — corpus-mirror (Stage 5.5 for session-publisher, v0.2)
 
-**Locked decisions:** Phase A (operator + Claude, 2026-05-15) + Phase B mid-flight revisions (2026-05-15)
-**Status:** Phase B draft — awaiting operator sign-off before Phase C (SKILL.md modifications + implementation)
+**Locked decisions:** Phase A (operator + Claude, 2026-05-15) + Phase B mid-flight revisions (2026-05-15) + **Phase C pivot (2026-05-16)**
+**Status:** Phase C shipped — Stage 5.5 implementation lives in `skill/SKILL.md`, `skill/helpers/mirror.py`, `skill/prompts/examples-template.md`
 **Predecessor:** `SPEC.md` v0.3 (defines the 7-stage skill; this SPEC adds Stage 5.5 between Stage 5 Interactive Review and Stage 6 Save)
 **Revision note:** v0.1 of this SPEC framed Stage 5.5 as a *mirror* (show examples, ask operator to compare). Operator overruled mid-Phase-B: Stage 5.5 now produces *style-applied rewrites* of the operator's own draft. Examples are read internally and applied; never shown.
+**Phase C pivot (2026-05-16):** §4 deterministic tag-overlap math + compliance modifier + threshold floor are **superseded** by Claude-semantic selection in SKILL.md Stage 5.5 prose. Phase A decision 8 ("pure stdlib matching on tags") was justified by "no separate LLM call" — but Phase B's "Claude rewrites in exemplar style" pivot already concedes that rationale, since the running Claude does the style application. The deterministic helper is replaced by a pure-loader `mirror.py` that emits eligible entries (after `near_duplicate_of` pre-filter — the only mechanical filter). Sections §3 (tag axes + length determinism), §5 (operator-facing layout), §6 (response handling), §7 (failure modes) are unchanged. §4 stays for historical reference; **read SKILL.md as authoritative** for the shipped selection behavior.
 
 ---
 
@@ -57,6 +58,9 @@ The five judgment axes are model-evaluated against the draft text — no regex, 
 ---
 
 ## 4. Schema extensions and matching
+
+> **⚠️ Phase C pivot (2026-05-16) — selection portion of this section is superseded.**
+> The schema extensions (`guide_compliance`, `guide_compliance_notes`, `near_duplicate_of`) are shipped and authoritative. The matching pipeline (tag-overlap weights, compliance modifier, threshold floor, top-N sort) is **replaced** by Claude-semantic selection in `SKILL.md` Stage 5.5 prose. `helpers/mirror.py` applies only one mechanical filter — `near_duplicate_of` pre-filter — and emits all eligible entries; the running Claude picks 0–2 register matches. See SKILL.md §5.5.2 for the shipped semantics.
 
 ### Schema extensions
 
