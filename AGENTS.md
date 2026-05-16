@@ -41,8 +41,30 @@ Claude Code skill that turns a session wrap-up file into a reviewed draft post f
 
 ### Working-state discipline
 
-- **2-Action Rule:** after every 2 search/read operations, write findings into a running notes file. Honor system, reinforced by editor hooks where available.
-- **Phase boundary checkpoints:** before any major phase transition, mark phase complete and declare execution context for the next phase (model + thinking effort + role + context).
+Four locations carry the project's working state. Update discipline:
+
+| File | Content | Cadence |
+|------|---------|---------|
+| `AGENTS.md` § Project context | Current state line — phase, gates, blockers | Same session as the state change (not deferred to next session) |
+| `planning/task_plan.md` | Phase state machine — current phase, history, gates, decisions | At every phase boundary |
+| `planning/progress.md` | Chronological session log (most recent on top) | End of every session — no exceptions |
+| `planning/findings.md` | Session-level reframes, pivots, gotchas, re-evaluation list | Mid-session via 2-Action Rule + end-of-session catch-up |
+
+Note: the three `planning/*.md` files are gitignored in this public repo. They exist locally and the discipline applies the same way.
+
+Three discipline rules tie these to action:
+
+- **2-Action Rule:** after every 2 search/read operations, write findings to
+  `planning/findings.md`. Honor system, reinforced by PostToolUse hook nudge.
+- **Phase boundary checkpoints:** before any major phase transition, update
+  `task_plan.md` to mark phase complete and declare execution context for the
+  next phase (D16: model + thinking effort + role + context per phase).
+- **Session-end catch-up:** at every session end (via `/wrap-up` or manual
+  close), append to `progress.md` AND `findings.md`. The `/wrap-up` skill
+  writes the FERO-Log SESSION document; these project-local files are the
+  same log scoped to this project. If a session shipped no project content
+  (meta-work only), still append a one-line entry to `progress.md` noting
+  that — silence creates currency doubt.
 
 ### Security boundaries
 
