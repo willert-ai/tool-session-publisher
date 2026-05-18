@@ -2,7 +2,7 @@
 
 **Read this before every draft. Every rule is a filter; if the draft fails any rule, rewrite before presenting.**
 
-*Two-layer guide. Layer 1 (rules 1–15, hook templates 1–5) = general builder best practices, distilled from deep research on builder-in-public X norms (2026-05-11). Layer 2 (rules 16–23, hook templates 6–10, AI anti-patterns) = AI/agentic tools build-in-public norms, distilled from deep research on the AI builder community on X (2026-05-11). Sources cited throughout the research: Simon Willison, swyx, Andrej Karpathy, Sebastian Raschka, Ahmad Osman, Riley Goodside, Pieter Levels, Daniel Vassallo, Marc Lou, Naval Ravikant.*
+*Two-layer guide. Layer 1 (rules 1–16, hook templates 1–5) = general builder best practices, distilled from deep research on builder-in-public X norms (2026-05-11). Layer 2 (rules 17–24, hook templates 6–10, AI anti-patterns) = AI/agentic tools build-in-public norms, distilled from deep research on the AI builder community on X (2026-05-11). Sources cited throughout the research: Simon Willison, swyx, Andrej Karpathy, Sebastian Raschka, Ahmad Osman, Riley Goodside, Pieter Levels, Daniel Vassallo, Marc Lou, Naval Ravikant.*
 
 ---
 
@@ -12,7 +12,7 @@ A single tweet (≤280 characters) grounded in today's real session work. This i
 
 ---
 
-## 15 Drafting Rules
+## 16 Drafting Rules
 
 1. **Start with proof of work.** The first sentence must contain a concrete result, a technical decision, or a specific obstacle cleared — from the actual session. No rhetorical questions. No "I've been thinking about..."
 
@@ -44,29 +44,31 @@ A single tweet (≤280 characters) grounded in today's real session work. This i
 
 15. **The "bookmark" test.** Ask: would a developer peer save this post as a reference to return to later? If yes, it has earned publication. If no, it is likely too vague or too personal.
 
+16. **Links go in the first reply, not the body.** Outbound links cost reach — the algorithm penalizes posts that end the on-platform session. If the post needs a link (repo, blog, demo), publish the post link-free and add the link as the first reply within 30 seconds. Reach loss in body: 30–90%. Reach loss in first reply: marginal. This applies to any link that leaves x.com.
+
 ---
 
 ---
 
 ## Layer 2 — AI / Agentic Tools Rules (apply when the session is about LLM tools, agents, Claude API, automation infrastructure)
 
-The AI builder community on X has a sophisticated immune system against hype. The same patterns that work for SaaS revenue posts backfire here. Rules 16–23 override the general rules when in conflict.
+The AI builder community on X has a sophisticated immune system against hype. The same patterns that work for SaaS revenue posts backfire here. Rules 17–24 override the general rules when in conflict.
 
-**16. Never make a capability claim without a reproduction path or explicit uncertainty.** If you say "the agent now handles X," either include the specific prompt/architecture that makes it work OR explicitly acknowledge the conditions under which it fails. Unverifiable claims are the #1 trust-killer in this community.
+**17. Never make a capability claim without a reproduction path or explicit uncertainty.** If you say "the agent now handles X," either include the specific prompt/architecture that makes it work OR explicitly acknowledge the conditions under which it fails. Unverifiable claims are the #1 trust-killer in this community.
 
-**17. Lead with the failure mode, not the success.** "I built X expecting Y but got Z — here's why and how I fixed it" outperforms success-only posts in AI builder communities. The failure exposes a real problem; the fix makes it useful to others. Document the messy middle, not just the landing.
+**18. Lead with the failure mode, not the success.** "I built X expecting Y but got Z — here's why and how I fixed it" outperforms success-only posts in AI builder communities. The failure exposes a real problem; the fix makes it useful to others. Document the messy middle, not just the landing.
 
-**18. Name the constraint explicitly.** Saying where your agent or system *cannot* go builds more credibility than projecting unlimited capability. "This works for sessions under 100k tokens — longer sessions degrade" is more trustworthy than "handles any length." The AI community rewards constraint-first framing.
+**19. Name the constraint explicitly.** Saying where your agent or system *cannot* go builds more credibility than projecting unlimited capability. "This works for sessions under 100k tokens — longer sessions degrade" is more trustworthy than "handles any length." The AI community rewards constraint-first framing.
 
-**19. Use specific names throughout.** Model name (claude-sonnet-4-6, not "the AI"), token counts, latency in milliseconds, API version, framework version. "Claude API call" beats "LLM inference." "77 tokens/second on M2 Max" beats "fast local inference." Specificity is the anti-hype.
+**20. Use specific names throughout.** Model name (claude-sonnet-4-6, not "the AI"), token counts, latency in milliseconds, API version, framework version. "Claude API call" beats "LLM inference." "77 tokens/second on M2 Max" beats "fast local inference." Specificity is the anti-hype.
 
-**20. Generate "learning exhaust," not polished case studies.** Post from the middle of the problem, not only from the solved state. "I'm 3 hours into this — here's the architectural decision I just made and why I'll probably regret it" is valuable. The community rewards the lab notebook, not the press release.
+**21. Generate "learning exhaust," not polished case studies.** Post from the middle of the problem, not only from the solved state. "I'm 3 hours into this — here's the architectural decision I just made and why I'll probably regret it" is valuable. The community rewards the lab notebook, not the press release.
 
-**21. Distinguish your system's output from the model's capability.** Say "my pipeline produces X" not "Claude does X." You own the system design; the model is an ingredient. Taking credit for the model's capability (or blaming the model for your system's failure) both read as technically unsophisticated.
+**22. Distinguish your system's output from the model's capability.** Say "my pipeline produces X" not "Claude does X." You own the system design; the model is an ingredient. Taking credit for the model's capability (or blaming the model for your system's failure) both read as technically unsophisticated.
 
-**22. Use "orchestration / review gate / human-in-the-loop" — never "fully autonomous".** Production agents require human intervention ~68% of the time at around step 10. "Fully autonomous" triggers immediate skepticism. Credible agentic posts name the constraint: "escalates to operator when context exceeds budget," "human-reviewed before commit," "reliable for repetitive well-defined tasks."
+**23. Use "orchestration / review gate / human-in-the-loop" — never "fully autonomous".** Production agents require human intervention ~68% of the time at around step 10. "Fully autonomous" triggers immediate skepticism. Credible agentic posts name the constraint: "escalates to operator when context exceeds budget," "human-reviewed before commit," "reliable for repetitive well-defined tasks."
 
-**23. Frame unsolved problems as unsolved.** "We tried X and it failed because Y, here's what we tried next" earns more trust and more replies than "we solved X." The AI builder community has watched too many solved claims quietly fail. Absence of limitation disclosure is read as evidence of undisclosed limitations.
+**24. Frame unsolved problems as unsolved.** "We tried X and it failed because Y, here's what we tried next" earns more trust and more replies than "we solved X." The AI builder community has watched too many solved claims quietly fail. Absence of limitation disclosure is read as evidence of undisclosed limitations.
 
 ---
 
@@ -86,6 +88,17 @@ Use one of these as the opening pattern, then fill in with session specifics.
 | **Time-Bound Transformation** *(AI layer)* | Before-state anchored to a time + what changed architecturally | "Six months ago the session-publisher was a spec doc. Today it ran end-to-end for the first time. Here's the one architectural decision that unblocked it." |
 | **Nomenclature Reveal** *(AI layer)* | Challenge what a common term actually means | "Everyone says their workflow is 'agentic.' Mine isn't — it's orchestrated tool-calling with explicit escalation gates. Here's the difference in practice." |
 | **Scaling Inflection** *(AI layer)* | The threshold where the current approach breaks + what replaced it | "The simple cursor model works up to ~50 sessions. Past that, the LLM loses the oldest ones. Here's the fix." |
+
+---
+
+## Post-publish protocol (algorithmic levers — not drafting rules)
+
+The drafting guide above governs what you write. Two algo signals govern what happens *after* you publish, and they outweigh any per-rule optimization:
+
+- **Author-reply within 1 hour.** Return to the post within an hour of publishing and reply to the first 2–3 substantive replies. This is the single highest-leverage post-publish action available: it gets re-ranked categorically and partially resets the decay clock. A post that earns 5 replies but no author engagement underperforms a post that earns 2 replies + author response.
+- **Post during the audience-active window.** 50% of a post's relevancy score decays every 6 hours. Posting at the start of the audience-active window (US daytime / EU evening overlap for the AI/builder audience) compounds velocity in the window where ranking decisions actually happen. Posting at audience-dead hours throws away most reach before anyone sees it.
+
+These aren't draft-content rules — they're operator behaviors that the drafting guide assumes but never names.
 
 ---
 
@@ -143,5 +156,7 @@ These are especially damaging when posting about LLM tools and agentic systems �
 When a post earns high bookmarks or replies — that's a signal to double down on that topic or format in the next session. When a post gets likes but zero replies or bookmarks — it was probably too general.
 
 ---
+
+*Version 1.3 — 2026-05-18. Added Layer 1 rule 16 (link placement) and "Post-publish protocol" section based on X algorithm signal analysis (xai-org/x-algorithm, Jan 2026). Layer 2 rules renumbered 17–24 (was 16–23). Source: `planning/DELTA_algo-vs-drafting-guide-2026-05-18.md`.*
 
 *Version 1.2 — 2026-05-11. Layer 2 extended: rules 22–23 added; hook templates expanded to 10 (Time-Bound Transformation, Nomenclature Reveal, Scaling Inflection); AI anti-patterns section expanded with accuracy-claims and agentic-superlative patterns. Sources: deep research on AI-builder community norms, hook patterns, and anti-patterns. Update trigger: operator observes consistent reaction pattern not explained by current rules.*

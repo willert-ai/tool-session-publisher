@@ -375,6 +375,8 @@ Paste this into your X scheduler → schedule / publish:
 After your X scheduler publishes:
 - update status: posted
 - paste the URL into x_url:
+- **within 1 hour**: return to the post and author-reply to the first 2–3 substantive replies (single highest-leverage post-publish action per drafting-guide "Post-publish protocol" section)
+- note `author_replied: yes/no` in reaction observations
 - append reaction observations under reactions: over the next few days
 ```
 
@@ -411,12 +413,13 @@ End of skill invocation.
 
 Bundled documentation read by the running Claude when needed:
 
-- **`prompts/drafting-guide.md`** — 23-rule X-drafting best-practice guide
-  (Layer 1 = general builder norms, rules 1–15 + hook templates 1–5;
-  Layer 2 = AI/agentic overrides, rules 16–23 + hook templates 6–11 +
-  AI anti-patterns). **Read in full at Stage 4 before drafting.** Layer 2
-  takes precedence when the approved angle concerns LLM tools, agents,
-  or automation infrastructure.
+- **`prompts/drafting-guide.md`** — 24-rule X-drafting best-practice guide
+  (Layer 1 = general builder norms, rules 1–16 + hook templates 1–5;
+  Layer 2 = AI/agentic overrides, rules 17–24 + hook templates 6–10 +
+  AI anti-patterns; plus "Post-publish protocol" section covering
+  author-reply within 1h and posting-window timing). **Read in full at
+  Stage 4 before drafting.** Layer 2 takes precedence when the approved
+  angle concerns LLM tools, agents, or automation infrastructure.
 
 ### Scripts (executable helpers)
 
