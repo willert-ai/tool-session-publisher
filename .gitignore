@@ -57,3 +57,16 @@ planning/DIAGNOSIS.md
 planning/GAP-ANALYSIS.md
 planning/ROADMAP.md
 skill/prompts/persona*.md
+
+# Shape-based guards (LD11): the build emits queues, seeds and fixtures that carry
+# unposted draft bodies and session-derived content. Canonical queue home is
+# $SESSION_PUBLISHER_NOTES_DIR/posts/x/queue/ (outside this repo); these are defence-in-depth.
+queue/
+*queue*
+seeds*
+*-backlog.md
+skill/tests/fixtures/
+
+# ...but queue/seed HELPER CODE is a shipped part of the skill and must stay trackable.
+!skill/helpers/queue*.py
+!skill/helpers/seed*.py
