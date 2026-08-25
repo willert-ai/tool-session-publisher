@@ -153,6 +153,18 @@ class LedgerUnreadable(Exception):
 # --- paths ------------------------------------------------------------------
 
 
+def seed_key_for(seed_ref: str) -> str:
+    """The one formula that turns a `seed_ref` into a ledger `seed_key`.
+
+    `cmd_add` always derives it fresh from `seed_ref` rather than trusting a
+    caller-supplied value — this is the single place that formula lives, so
+    a caller checking ledger dedup ahead of a write (mine.py) can compute the
+    same key `cmd_add` will, instead of keeping its own copy that silently
+    stops matching if this ever changes.
+    """
+    return hashlib.sha1(seed_ref.encode("utf-8")).hexdigest()
+
+
 def resolve_queue_dir(override: str | None) -> Path:
     return Path(override).expanduser() if override else QUEUE_DIR
 
@@ -613,7 +625,7 @@ def cmd_add(args) -> int:
         "created_at": created_at.isoformat(timespec="seconds"),
         "drafted_by": args.drafted_by,
         "source": args.source,
-        "seed_key": hashlib.sha1(seed_ref.encode("utf-8")).hexdigest(),
+        "seed_key": seed_key_for(seed_ref),
         "seed_ref": seed_ref,
         "pillar": args.pillar,
         "status": "queued",
