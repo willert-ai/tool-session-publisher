@@ -43,3 +43,17 @@ planning/PRD_*.md
 
 # Private curated examples corpus (operator-specific voice references)
 skill/prompts/examples.local.md
+
+# --- Private working artifacts (public repo — keep operator/business material local) ---
+# Any *.local.* file is private by convention; never tracked.
+*.local.md
+*.local.json
+
+# Research + strategy artifacts derived from paid course material and/or carrying
+# operator positioning, personas, follower metrics and business strategy.
+planning/research/
+planning/SPEC-x-comms-engine.md
+planning/DIAGNOSIS.md
+planning/GAP-ANALYSIS.md
+planning/ROADMAP.md
+skill/prompts/persona*.md
