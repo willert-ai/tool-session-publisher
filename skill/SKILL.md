@@ -19,11 +19,11 @@ fully functional for the case where a session is already open and the operator
 wants to draft from *this* session's work directly, rather than waiting for the
 next ambient tick. It is no longer the primary way posts get written.
 
-> **Build status.** The queue contract (`helpers/queue.py`: `add`, `--validate`,
-> `expire`) is shipped. The interactive review surface — `queue.py review`, with
-> approve / edit / kill / copy semantics — lands in a later commit of the v1
-> chain. **Until it does, the seven-stage path below is the working entry point**
-> and the queue is written to, not yet read from, interactively.
+> **Build status.** The queue contract and the review surface are both shipped
+> (`helpers/queue.py`: `add`, `--validate`, `expire`, `list`, `review`, `approve`,
+> `kill`, `copy`). What is not yet wired is the launchd trigger that fills the
+> queue on a schedule — until it lands, entries arrive only when the drafting
+> engine is run by hand, so an empty queue is the expected state.
 
 ---
 
@@ -38,28 +38,40 @@ next ambient tick. It is no longer the primary way posts get written.
 
 ---
 
-## Stage 0 — Queue peek (queue path, read-only until C5)
+## Stage 0 — Queue review (queue path)
 
 Runs when the operator asks to review the queue. Everything else goes to Stage 1.
 
+The review surface is a terminal program, not a conversation. Check what is waiting
+first:
+
 ```bash
-ls -1 "$SESSION_PUBLISHER_NOTES_DIR/posts/x/queue/" 2>/dev/null | grep '^q_' | sort
+python3 <skill>/helpers/queue.py list
 ```
 
-For each entry file, read it and render the operator-facing summary: `id`, `created_at`,
-`pillar`, `source`, `body_chars`, and the **full body**. Then stop and say plainly:
+That prints JSON: one row per actionable entry with `id`, `status`, `pillar`,
+`source`, `body_chars`, `days_in_queue` and any arc metadata. Summarise it in a line
+or two. If `counts` is empty, say so and offer Stage 1 (the manual drafting
+conversation) instead.
 
-> Read-only. The one-action review surface — approve / edit / kill / copy — is
-> `queue.py review`, which lands in a later commit of the v1 chain. Until then you can
-> copy a body by hand; nothing here changes an entry's status.
+If there is anything to review, hand the operator the command and stop:
+
+> Run `python3 <skill>/helpers/queue.py review` in your terminal — one entry at a
+> time, `[a]pprove [e]dit [k]ill [c]opy [s]kip [q]uit`. Approve feeds the corpus;
+> copy puts the body on your clipboard, stamps it posted and archives it (and
+> approves first if you had not already).
+
+Run it **for** the operator only if they ask you to — it needs a real terminal, and
+inside a Claude Code session `stdin` is not a TTY, so `review` will refuse with
+`input:not_a_tty`. The scriptable equivalents exist for that case:
+`queue.py approve <id> [--body-file F]`, `queue.py kill <id>`, `queue.py copy <id>`.
 
 Do **not** hand-edit a queue file's frontmatter to fake an approval. `status`,
 `decision_at`, `edit_distance` and `posted_at` are written by `queue.py`, and the
 append-only ledger at `queue/.ledger.jsonl` is the anti-re-emission contract — a status
-flipped by hand desynchronises the two and the miner will re-emit the seed.
-
-If the queue directory is absent or empty, say so in one line and offer Stage 1 (the
-manual drafting conversation) instead.
+flipped by hand desynchronises the two and the miner will re-emit the seed. A hand-flip
+also skips the corpus append, which is the only thing that teaches the engine the
+operator's voice.
 
 ---
 
@@ -478,10 +490,15 @@ the `Bash` tool. Each emits JSON on stdout.
 - **`helpers/save.py`** — Stage 6. Writes the approved draft as
   `$NOTES_DIR/posts/x/YYYY-MM-DD_post-NNN.md` with frontmatter. Enforces
   the 280-character ceiling.
-- **`helpers/queue.py`** — the ambient queue contract, not part of the
-  seven-stage path. `add` writes a drafted entry (anti-leak gate,
-  280-character ceiling, schema + ledger); `--validate` checks the queue;
-  `expire` archives aged or over-capacity entries.
+- **`helpers/queue.py`** — the ambient queue contract and the review
+  surface, not part of the seven-stage path. `add` writes a drafted entry
+  (anti-leak gate, 280-character ceiling, schema + ledger); `--validate`
+  checks the queue; `expire` archives aged or over-capacity entries;
+  `list` prints the actionable queue as JSON; `review` is the operator's
+  interactive one-action loop; `approve` / `kill` / `copy` are the same
+  transitions callable by id. Approving appends the body to
+  `prompts/examples.local.md` in the Stage 5.5 corpus format, which is how
+  the ambient path feeds the same corpus Stage 5.5 reads.
 - **`helpers/draft.py`** — the ambient drafting engine, not part of the
   seven-stage path either. Turns seeds into finished bodies through a
   headless `claude -p` call and files them via `queue.py add`. Assembles

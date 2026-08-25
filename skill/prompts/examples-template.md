@@ -48,6 +48,15 @@ the failure with a fix) and a confident opening undercut by the next line (disti
 
 - `media_attached` — `image`, `video`, or omit if text-only
 - `near_duplicate_of` — entry id (e.g., `simonw-003`). Set on non-representative members of a near-duplicate cluster (same handle + same tone + same hook + same rhythm). One representative per cluster leaves this field unset; the rest point at it. `mirror.py` drops every entry where this field is set, so only cluster representatives reach Stage 5.5.
+- `source_entry` — queue entry id (e.g., `q_2026-08-26_073104`). Written by `helpers/queue.py` when an approval appends a row, and read back by it: an approval that fails partway can be retried without appending the same body twice. Never set by hand.
+- `retag` — `pending`, or omit. Written by `queue.py` when the operator edited the drafted body by more than 20% of its length (`edit_distance` vs `body_drafted`). The seven axes above were judged at draft time against the *drafted* body, so on a heavily-edited row they are a guess; the marker says "re-tag me at the next curation pass" rather than pretending otherwise.
+
+`mirror.py` carries neither field into its output — they are curation metadata, inert to Stage 5.5.
+
+A third `personality_fit_note` prefix joins `claude-initial-read:` and `operator:` —
+`x-comms-engine:` marks a row the approval path captured automatically. It records the
+`edit_distance` and nothing else, because approval is deliberately zero-LLM: no
+judgement is made at approval time that was not already made at draft time.
 
 ## Single worked example
 
