@@ -1,24 +1,65 @@
 ---
 name: session-publisher
-version: "0.1.0"
-description: This skill should be used when the user says "/session-publisher", asks to "draft a post", "publish today's session", "turn this session into a post", or "post about today" — typically at the end of an evening routine after /wrap-up. Runs a seven-stage interactive conversation that reads the past-7-days narrative thread, recommends a topic grounded in today's session work, drafts with a researched best-practice guide, iterates until operator approval, and saves the result to $NOTES_DIR/posts/x/. Does NOT publish directly — operator pastes the approved draft into your X scheduler.
+version: "2.0.0"
+description: This skill should be used when the user says "/session-publisher", asks to "review the X queue", "draft a post", "publish today's session", "turn this session into a post", or "post about today". Primary path — the ambient x-comms-engine drafts finished ≤280-character post bodies into a queue at $NOTES_DIR/posts/x/queue/ with no Claude session open, and the operator reviews that queue one entry at a time. Fallback path — a manual seven-stage interactive conversation that reads the past-7-days narrative thread, recommends a topic grounded in today's session work, drafts with a researched best-practice guide, iterates until approval, and saves to $NOTES_DIR/posts/x/. Does NOT publish directly — the operator pastes an approved body into their X scheduler.
 ---
 
 # Session Publisher
 
-Turn today's Claude Code session wrap-up into a reviewed draft post for X
-through a seven-stage interactive conversation. The skill never publishes
-directly; the operator pastes the approved draft into your X scheduler.
+Two paths to the same output — a reviewed ≤280-character post body the operator
+pastes into their X scheduler. The skill never publishes directly.
+
+**Primary path — ambient queue (x-comms-engine v1).** A scheduled local agent
+mines the session history, drafts finished post bodies headlessly, and files them
+into `$NOTES_DIR/posts/x/queue/`. Nothing depends on the operator remembering to
+start anything; the only obligation is reviewing the queue.
+
+**Fallback path — the manual seven-stage conversation (below).** Retained and
+fully functional for the case where a session is already open and the operator
+wants to draft from *this* session's work directly, rather than waiting for the
+next ambient tick. It is no longer the primary way posts get written.
+
+> **Build status.** The queue contract (`helpers/queue.py`: `add`, `--validate`,
+> `expire`) is shipped. The interactive review surface — `queue.py review`, with
+> approve / edit / kill / copy semantics — lands in a later commit of the v1
+> chain. **Until it does, the seven-stage path below is the working entry point**
+> and the queue is written to, not yet read from, interactively.
 
 ---
 
 ## Trigger Phrases
 
 - `/session-publisher`
+- "review the X queue" → **Stage 0** (queue path)
 - "draft a post"
 - "publish today's session"
 - "turn this session into a post"
 - "post about today"
+
+---
+
+## Stage 0 — Queue peek (queue path, read-only until C5)
+
+Runs when the operator asks to review the queue. Everything else goes to Stage 1.
+
+```bash
+ls -1 "$SESSION_PUBLISHER_NOTES_DIR/posts/x/queue/" 2>/dev/null | grep '^q_' | sort
+```
+
+For each entry file, read it and render the operator-facing summary: `id`, `created_at`,
+`pillar`, `source`, `body_chars`, and the **full body**. Then stop and say plainly:
+
+> Read-only. The one-action review surface — approve / edit / kill / copy — is
+> `queue.py review`, which lands in a later commit of the v1 chain. Until then you can
+> copy a body by hand; nothing here changes an entry's status.
+
+Do **not** hand-edit a queue file's frontmatter to fake an approval. `status`,
+`decision_at`, `edit_distance` and `posted_at` are written by `queue.py`, and the
+append-only ledger at `queue/.ledger.jsonl` is the anti-re-emission contract — a status
+flipped by hand desynchronises the two and the miner will re-emit the seed.
+
+If the queue directory is absent or empty, say so in one line and offer Stage 1 (the
+manual drafting conversation) instead.
 
 ---
 
@@ -179,7 +220,7 @@ alternative.
 ### Stage 4 — Drafting
 
 Read `~/.claude/skills/session-publisher/prompts/drafting-guide.md` in full.
-Apply Layer 2 rules (16–23 + AI anti-patterns) when the approved angle is
+Apply Layer 2 rules (17–24 + AI anti-patterns) when the approved angle is
 about LLM tools, agents, or automation. Otherwise apply Layer 1.
 
 Produce a single tweet **≤ 280 characters**, grounded in concrete session
@@ -201,7 +242,7 @@ Accepted operator instructions (loop until `approve` or `skip`):
 - operator pastes their own rewrite → accept verbatim as final
 
 After every edit, re-check the 280-character ceiling and the drafting
-guide's rules 1–23. If a rule is broken, fix it before presenting.
+guide's 24 rules. If a rule is broken, fix it before presenting.
 
 ### Stage 5.5 — Style-applied variants (conditional)
 
@@ -211,7 +252,7 @@ If any precondition fails, **silently skip** Stage 5.5 and proceed to Stage 6
 with the original Stage-5-approved draft.
 
 Stage 5.5 exists because rules-compliant drafts can still feel "off" — voice
-and constraint-disclosure register escape the 23 rules in `drafting-guide.md`.
+and constraint-disclosure register escape the 24 rules in `drafting-guide.md`.
 The operator's private corpus encodes register that has actually worked in
 publication; Stage 5.5 transfers that register onto the operator's content.
 
@@ -244,10 +285,11 @@ The corpus is private context, not operator-facing content. Read the
    `constraint_disclosure`, `topic_area`. The seventh — `length` — is
    deterministic: `shortform` if `len(body) ≤ 280` else `longform`.
 2. **Vocabulary** is fixed in `prompts/examples-template.md`. Hook
-   structures map 1:1 to `drafting-guide.md` Layer-2 hook templates 6–11
+   structures map 1:1 to `drafting-guide.md` Layer-2 hook templates 6–10
    when the topic_area is `ai-tooling` / `ai-research` /
    `agentic-engineering` / `model-release-tracking`; otherwise Layer-1
-   templates 1–5.
+   templates 1–5. Templates 11–12 (Confession, Expectation Reversal)
+   apply under either layer.
 3. **Select up to 2 matches** by honest register fit. Prioritize
    `tone_register` and `hook_structure` (the load-bearing register axes),
    then `sentence_rhythm`, `topic_ownership`, `constraint_disclosure`.
@@ -272,7 +314,7 @@ approved draft. Preserve:
 - All concrete numbers, named technologies, and constraint disclosures
   from the original draft.
 - The 280-character ceiling if the original was `shortform`.
-- All 23 rules from `drafting-guide.md`. If exemplar register conflicts
+- All 24 rules from `drafting-guide.md`. If exemplar register conflicts
   with a rule, **the rule wins.**
 
 Adjust toward the exemplar:

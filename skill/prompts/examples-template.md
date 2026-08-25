@@ -5,7 +5,7 @@ This file documents the schema for the **operator's private examples corpus** us
 ## Purpose
 
 Successful posts from a curated set of reference bloggers encode register —
-voice, hook shape, sentence rhythm — that escapes the 23 rules of
+voice, hook shape, sentence rhythm — that escapes the 24 rules of
 `drafting-guide.md`. After Stage 5 produces a rules-compliant draft,
 Stage 5.5 reads the corpus internally, picks up to 2 entries that match the
 draft's inferred shape, and produces **style-applied rewrites** of the
@@ -29,7 +29,7 @@ Each entry is a markdown block with a heading, a metadata list, and the post tex
 - `approx_reposts` — same as above
 - `length` — `shortform` (≤280 chars) or `longform` (>280 chars, requires X Premium to author)
 - `tone_register` — one of: `clinical-peer`, `reflective-solo`, `provocateur`, `dry-wit`
-- `hook_structure` — one of: `hard-number-first`, `failure-exposed`, `contrarian-claim`, `ship-log-direct`, `question-reframe`, `observation-cold`, `meme-callout`
+- `hook_structure` — one of: `hard-number-first`, `failure-exposed`, `contrarian-claim`, `ship-log-direct`, `question-reframe`, `observation-cold`, `meme-callout`, `confession`, `expectation-reversal`
 - `sentence_rhythm` — one of: `staccato`, `mid-length-declarative`, `flowing`, `mixed`
 - `topic_ownership` — one of: `i-built-this`, `i-learned-this`, `i-disagree-with-this`, `i-show-you-this`, `i-noticed-this`
 - `constraint_disclosure` — one of: `limitation-upfront`, `limitation-embedded`, `limitation-absent`, `uncertainty-stated`
@@ -37,6 +37,12 @@ Each entry is a markdown block with a heading, a metadata list, and the post tex
 - `guide_compliance` — integer `1`–`5`. `1` = violates `drafting-guide.md`, `5` = textbook-compliant. Dual-layer aware: if `topic_area` ∈ `{ai-tooling, ai-research, agentic-engineering, model-release-tracking}`, score against Layer 1 + Layer 2; otherwise Layer 1 only. Populated at curation time. Stage 5.5 uses this as a final tiebreaker — never as primary ranking.
 - `guide_compliance_notes` — one-line string. Which rule(s) the entry hits or misses. Quote-wrap (`"…"`) tolerated.
 - `personality_fit_note` — short qualitative note. Prefix `claude-initial-read:` for unreviewed entries, `operator:` once you've refined.
+
+`confession` and `expectation-reversal` correspond to `drafting-guide.md` hook templates
+11–12. They were added in v2.0 because two shapes that recur in real posts had no value to
+tag them with: a flat first-person admission (distinct from `failure-exposed`, which pairs
+the failure with a fix) and a confident opening undercut by the next line (distinct from
+`hard-number-first`, which describes only how the first line opens).
 
 ### Optional fields
 
@@ -76,7 +82,7 @@ to 2 entries as register exemplars, prioritising `tone_register` and
 corpus entries themselves — only rewrites of your own content in their
 register. You pick: original, A, B, iterate, or skip.
 
-The 23 rules in `drafting-guide.md` are the floor for every rewrite. When
+The 24 rules in `drafting-guide.md` are the floor for every rewrite. When
 exemplar register conflicts with a rule, the rule wins.
 
 `helpers/mirror.py` is pure stdlib. Semantic selection happens inside the

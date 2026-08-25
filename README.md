@@ -144,7 +144,7 @@ Key design documents:
 
 - `planning/SPEC.md`
 - `planning/PreMortem-session-publisher-2026-05-11.md`
-- `skill/prompts/drafting-guide.md` — 23 rules, 11 hook templates,
+- `skill/prompts/drafting-guide.md` — 24 rules, 12 hook templates,
   AI/agentic Layer 2 overrides
 
 ---

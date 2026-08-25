@@ -2,7 +2,7 @@
 
 **Read this before every draft. Every rule is a filter; if the draft fails any rule, rewrite before presenting.**
 
-*Two-layer guide. Layer 1 (rules 1–16, hook templates 1–5) = general builder best practices, distilled from deep research on builder-in-public X norms (2026-05-11). Layer 2 (rules 17–24, hook templates 6–10, AI anti-patterns) = AI/agentic tools build-in-public norms, distilled from deep research on the AI builder community on X (2026-05-11). Sources cited throughout the research: Simon Willison, swyx, Andrej Karpathy, Sebastian Raschka, Ahmad Osman, Riley Goodside, Pieter Levels, Daniel Vassallo, Marc Lou, Naval Ravikant.*
+*Two-layer guide. Layer 1 (rules 1–16, hook templates 1–5) = general builder best practices, distilled from deep research on builder-in-public X norms (2026-05-11). Layer 2 (rules 17–24, hook templates 6–10, AI anti-patterns) = AI/agentic tools build-in-public norms, distilled from deep research on the AI builder community on X (2026-05-11). Hook templates 11–12 apply to both layers. Sources cited throughout the research: Simon Willison, swyx, Andrej Karpathy, Sebastian Raschka, Ahmad Osman, Riley Goodside, Pieter Levels, Daniel Vassallo, Marc Lou, Naval Ravikant.*
 
 ---
 
@@ -12,19 +12,19 @@ A single tweet (≤280 characters) grounded in today's real session work. This i
 
 ---
 
-## 16 Drafting Rules
+## Layer 1 — General Builder Rules (1–16)
 
-1. **Start with proof of work.** The first sentence must contain a concrete result, a technical decision, or a specific obstacle cleared — from the actual session. No rhetorical questions. No "I've been thinking about..."
+1. **Start with proof of work.** The first sentence must contain a concrete result, a technical decision, or a specific obstacle cleared — from the actual session. No "I've been thinking about..." No rhetorical questions — **with exactly one exception: a question quoted to yourself.** "I stopped and asked: 'do I really need this?'" reports a real moment of judgment; it is a decision artifact, not a rhetorical device. Every reader-directed question stays banned — that is engagement bait under another name (rule 11).
 
-2. **Include at least one number.** Milliseconds, dollars, lines of code, hours, percentages, dates. Numbers are the only currency that cannot be faked. If the session has no number, invent a specific framing instead ("finally fixed the auth bug I'd been fighting for 3 days").
+2. **Include at least one number — and never invent one.** Milliseconds, dollars, lines of code, hours, percentages, dates. Numbers are the only currency that cannot be faked, which is precisely why faking one is the most expensive mistake in this guide. Every number must be traceable to the artifact the post is about. **If the work produced no number, the post carries no number** — write the mechanism instead. A missing number costs a little credibility; an invented one costs all of it.
 
 3. **Use "I", never "we".** Solo builder. Accountability is the asset.
 
-4. **Present tense for live ships; past tense for reflections.** "Just pushed the beta" creates momentum. "I realised the DB was bloated" is a reflection. Pick the right tense for the kind of post.
+4. **Reflective past tense is the default; ship-log present tense is conditional.** "I realised the DB was bloated" is the home register — most sessions are reflections, not launches. "Just pushed the beta" creates momentum, but only when a ship actually happened. Tense is a truth claim, not a stylistic choice: no recorded ship, no ship-log voice.
 
-5. **One idea only.** If the session produced three distinct insights, pick the one with the highest bookmark potential — the one a developer would save as a professional reference. Discard the rest; they become candidates for future sessions.
+5. **One idea, at full density.** If the session produced three distinct insights, pick the one with the highest bookmark potential — the one a developer would save as a professional reference — and spend the whole post on it. The others become candidates for future sessions. Density is the point: dwell time rewards an idea developed to its consequence, and a post pointing in three directions develops none of them. Half a post each on two ideas is worse than a full post on one.
 
-6. **Show the mechanism, not the emotion.** Not "today was tough." Instead: "The API kept timing out on files over 5MB. Fixed it with a multipart stream." Describe *what you did and why* — not how you felt about it.
+6. **Show the mechanism, not the emotion — then land on a takeaway.** Not "today was tough." Instead: "The API kept timing out on files over 5MB. Fixed it with a multipart stream." Describe *what you did and why*, not how you felt about it. **Close on one flat takeaway line.** A trailing shrug ("we'll see how it goes...") throws away the strongest line you have — the closer is what a reader carries out of the post, and it is the line most likely to be quoted back at you. The takeaway is declarative and specific — "Next time, 5 minutes." — not a manufactured emotional punch, which rule 10 forbids.
 
 7. **State the trade-off explicitly.** When sharing a decision: "I chose X over Y because Z." Trade-offs are the concrete DNA of build-in-public content.
 
@@ -44,9 +44,7 @@ A single tweet (≤280 characters) grounded in today's real session work. This i
 
 15. **The "bookmark" test.** Ask: would a developer peer save this post as a reference to return to later? If yes, it has earned publication. If no, it is likely too vague or too personal.
 
-16. **Links go in the first reply, not the body.** Outbound links cost reach — the algorithm penalizes posts that end the on-platform session. If the post needs a link (repo, blog, demo), publish the post link-free and add the link as the first reply within 30 seconds. Reach loss in body: 30–90%. Reach loss in first reply: marginal. This applies to any link that leaves x.com.
-
----
+16. **Links go in the first reply, not the body.** Outbound links cost reach — the algorithm penalizes posts that end the on-platform session. If the post needs a link (repo, blog, demo), publish the post link-free and add the link as the first reply. Reach loss in body: 30–90%. Reach loss in first reply: marginal. This applies to any link that leaves x.com. *(v1.3 prescribed "within 30 seconds". That number is withdrawn rather than replaced: the placement finding is well corroborated, the exact delay is not, and a guide should not carry a precise number it cannot source. Reply timing is an operator behaviour — see the post-publish protocol — not a drafting rule.)*
 
 ---
 
@@ -72,9 +70,9 @@ The AI builder community on X has a sophisticated immune system against hype. Th
 
 ---
 
-## 10 Hook Templates
+## 12 Hook Templates
 
-Use one of these as the opening pattern, then fill in with session specifics.
+Use one of these as the opening pattern, then fill in with session specifics. Templates 1–5 are Layer 1, 6–10 are Layer 2, and 11–12 apply to both.
 
 | Template | Pattern | Example |
 |---|---|---|
@@ -88,6 +86,10 @@ Use one of these as the opening pattern, then fill in with session specifics.
 | **Time-Bound Transformation** *(AI layer)* | Before-state anchored to a time + what changed architecturally | "Six months ago the session-publisher was a spec doc. Today it ran end-to-end for the first time. Here's the one architectural decision that unblocked it." |
 | **Nomenclature Reveal** *(AI layer)* | Challenge what a common term actually means | "Everyone says their workflow is 'agentic.' Mine isn't — it's orchestrated tool-calling with explicit escalation gates. Here's the difference in practice." |
 | **Scaling Inflection** *(AI layer)* | The threshold where the current approach breaks + what replaced it | "The simple cursor model works up to ~50 sessions. Past that, the LLM loses the oldest ones. Here's the fix." |
+| **Confession** *(both layers)* | First-person admission of a self-inflicted mistake, stated flat and uncushioned | "I built a caching layer for a query that runs twice a day." |
+| **Expectation Reversal** *(both layers)* | Confident opening claim, then one short line that undercuts it | "Two commands and the migration would be done. / It took nine." |
+
+**Tone caveat on template 5 (Hard Truth / Contrarian).** Defend the claim by mechanism, never by attacking a group. "You don't need a scheduling tool — here's what the habit replaces" earns replies; "people who use scheduling tools are cargo-culting" earns mutes and blocks, which accumulate against every future post. The claim can be sharp; the target must be an idea, not a category of people.
 
 ---
 
@@ -156,6 +158,8 @@ These are especially damaging when posting about LLM tools and agentic systems �
 When a post earns high bookmarks or replies — that's a signal to double down on that topic or format in the next session. When a post gets likes but zero replies or bookmarks — it was probably too general.
 
 ---
+
+*Version 2.0 — 2026-08-25. Five rules amended against a corroborated gap analysis (rule 1: quoted-question-to-self permitted, reader-directed questions still banned; rule 2: "invent a specific framing" removed — no source number, no number; rule 4: reflective past made the default and ship-log tense made conditional on a recorded ship; rule 5: "one idea" → "one idea at full density"; rule 6: flat-takeaway closer required). Rule 16's "within 30 seconds" was withdrawn rather than amended — see the rule. Layer-1 rules section retitled; hook templates 11–12 added (Confession, Expectation Reversal — both layers) and a tone caveat added to template 5. Rule numbering 1–24 and Layer-2 template numbering 6–10 are unchanged. Every amendment carries corroboration from the 2026-05-18 algorithm audit or from published-post evidence. A sixth candidate amendment (link-reply timing) was rejected at review for resting on a single source — hence the withdrawal in rule 16 rather than a replacement number.*
 
 *Version 1.3 — 2026-05-18. Added Layer 1 rule 16 (link placement) and "Post-publish protocol" section based on X algorithm signal analysis (xai-org/x-algorithm, Jan 2026). Layer 2 rules renumbered 17–24 (was 16–23). Source: `planning/DELTA_algo-vs-drafting-guide-2026-05-18.md`.*
 
