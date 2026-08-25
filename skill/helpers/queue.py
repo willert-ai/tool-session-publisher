@@ -131,6 +131,9 @@ LEAK_SHAPES = (
     ),
     ("leak:email", re.compile(r"\b[\w.%+-]+@[\w-]+\.[A-Za-z]{2,}\b")),
     ("leak:ts_hostname", re.compile(r"\b[\w-]+\.ts\.net\b")),
+    # Six colon-separated hex pairs. Timestamps top out at three groups, so this cannot
+    # collide with a duration the drafting guide asks for.
+    ("leak:mac_address", re.compile(r"\b(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\b")),
 )
 
 

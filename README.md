@@ -102,19 +102,24 @@ sessions by project name:
 
 ## Architecture
 
-A single Claude Code skill + three short Python helpers + one researched
-drafting guide. There is no cron, no GitHub Actions, no separate API key,
-no `.env`. The "drafting LLM" is the running Claude — the skill reads a
-23-rule drafting guide and applies it in-session.
+A single Claude Code skill + a handful of stdlib-only Python helpers + one
+researched drafting guide. There is no cron, no GitHub Actions, no separate API
+key, no `.env`. In the interactive path the "drafting LLM" is the running Claude,
+applying a 24-rule drafting guide in-session; in the ambient path it is the same
+guide handed to a headless `claude -p` call with no session open.
 
 ```
 session-publisher/
 ├── skill/
-│   ├── SKILL.md                    # the skill itself (~180 lines)
+│   ├── SKILL.md                    # the skill itself
 │   ├── helpers/
 │   │   ├── select.py               # candidate sessions from SESSION_INDEX
 │   │   ├── thread.py               # narrative thread from posts/x/
-│   │   └── save.py                 # write approved draft to $NOTES_DIR
+│   │   ├── save.py                 # write approved draft to $NOTES_DIR
+│   │   ├── mirror.py               # load the private register corpus
+│   │   ├── queue.py                # the ambient queue contract
+│   │   └── draft.py                # seeds → finished bodies, headless
+│   ├── engine/                     # the assembled headless drafting prompt
 │   └── prompts/
 │       └── drafting-guide.md       # researched X-posting best practice
 └── planning/                       # SPEC + pre-mortem

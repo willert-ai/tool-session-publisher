@@ -478,6 +478,15 @@ the `Bash` tool. Each emits JSON on stdout.
 - **`helpers/save.py`** — Stage 6. Writes the approved draft as
   `$NOTES_DIR/posts/x/YYYY-MM-DD_post-NNN.md` with frontmatter. Enforces
   the 280-character ceiling.
+- **`helpers/queue.py`** — the ambient queue contract, not part of the
+  seven-stage path. `add` writes a drafted entry (anti-leak gate,
+  280-character ceiling, schema + ledger); `--validate` checks the queue;
+  `expire` archives aged or over-capacity entries.
+- **`helpers/draft.py`** — the ambient drafting engine, not part of the
+  seven-stage path either. Turns seeds into finished bodies through a
+  headless `claude -p` call and files them via `queue.py add`. Assembles
+  its prompt from `engine/draft-prompt.md` plus the operator's private
+  voice profile. Never invoked from an interactive session.
 - **`helpers/mirror.py`** — Stage 5.5 (conditional). Parses
   `prompts/examples.local.md` (operator-private, gitignored), drops
   `near_duplicate_of` cluster non-representatives, returns eligible
