@@ -33,11 +33,30 @@ a ledger event for rejections too, which is a `draft.py`/`queue.py` change,
 out of scope here.
 
 `text` — the only place draft.py's number gate lets numbers come from — is
-built from two sources, matching the component diagram: the SESSION_INDEX
-row itself (outcome/insight are already number-dense in this operator's
-index) and, best-effort, `git log` subjects from a same-day match in a
-locally scanned repo. A miss on the git side just means a plainer `text`;
-it is enrichment, not the contract, and never turns into a failure.
+built from the session's own **document** where one can be resolved, and
+falls back to the SESSION_INDEX row when it cannot.
+
+That split is the whole point of this file, so it is worth stating plainly.
+The index row is written by the wrap-up skill to answer *"what did I do this
+week"*: it is an engineering conclusion with the journey already compressed
+out. Feeding it to a drafting model asks that model to answer a different
+question — *"what here would be worth telling someone"* — from material that
+cannot support it, and the measured result was nine drafts about tests,
+reviews and defect counts, all rejected. The document beside it holds the
+story: what was tried, what was ruled out, what was still open. So `text`
+now carries the document's narrative sections, and the row survives as
+`seed_ref` only — which is what it is good for, being the ledger dedup key
+and a stable operator-facing reference.
+
+Three sources, in order:
+  1. the session document's narrative sections (see `extract_narrative`),
+     resolved from the row by date + fuzzy title/slug match;
+  2. the SESSION_INDEX row's own outcome/insight columns, **iff** no
+     document could be resolved — a missing or ambiguous document degrades
+     to the pre-2026-08-28 behaviour and never fails the tick;
+  3. best-effort `git log` subjects from a same-day match in a locally
+     scanned repo, appended either way. A miss there just means a plainer
+     `text`; it is enrichment, not the contract.
 
 SESSION_INDEX schema: 8 positional columns, no header — same parse contract
 `select.py` documents. Duplicated here rather than imported: `select.py`
@@ -55,9 +74,11 @@ Smoke tests:
     python3 mine.py --days 14
     python3 mine.py --days 3 --today 2026-08-25
 
-`--index` and `--queue-dir` isolate SESSION_INDEX and the ledger for testing,
-but posts/ dedup always reads the real $NOTES_DIR/posts/x/ — there is no
-separate override for it. A fully isolated test run needs
+`--index` and `--queue-dir` isolate SESSION_INDEX and the ledger for testing.
+Session-document lookup follows `--index` (documents live beside the index, so
+its parent directory is the notes root), but posts/ dedup always reads the real
+$NOTES_DIR/posts/x/ — there is no separate override for it, and those two
+therefore diverge under a bare `--index`. A fully isolated test run needs
 SESSION_PUBLISHER_NOTES_DIR pointed at a scratch dir too:
 
     SESSION_PUBLISHER_NOTES_DIR=/tmp/notes \\
@@ -105,6 +126,264 @@ DEFAULT_MAX_SEEDS = 12
 # Match a SESSION row: pipe + space + ISO date + space + pipe — same contract
 # select.py parses against (session_source_key format: "YYYY-MM-DD - <title>").
 ROW_PATTERN = re.compile(r"^\| \d{4}-\d{2}-\d{2} \|")
+
+# --- session-document resolution + narrative extraction ---------------------
+
+# Session documents live flat in the notes root as
+# "YYYY-MM-DD - SESSION_<verb-slug>.md". The slug is NOT a deterministic
+# transform of the index title — the wrap-up skill invents a shortened,
+# verb-led one, and it drops, reorders and truncates words freely:
+#   "Closed RUNBOOK § 8, disproved the 390px defect, and turned off LiveKit
+#    observability"            -> closed-runbook-8-and-disabled-livekit-observability
+#   "Hardened a copy-audit instrument after two refute rounds"
+#                              -> hardened-copy-audit-instrument
+# So resolution is a scored token match, not string surgery, and it refuses
+# rather than guesses: a wrong document would attribute one session's story
+# to another session's seed_ref, which is worse than the thin row.
+SESSION_DOC_MARKER = "SESSION_"
+SESSION_DOC_MIN_SCORE = 0.6
+
+# Dropped from `_slug_tokens` on both sides — they carry no discriminating
+# signal and their presence/absence is exactly what the slug varies on.
+SLUG_STOPWORDS = frozenset(
+    """a an the and or of to for on in at by with from into onto its it this that then
+    than as is was were be been are against across after before not but""".split()
+)
+
+# Sections dropped from the narrative extract, matched as a normalised prefix
+# of the heading text so suffixed variants ("Session Output — recruiting
+# drafts, unposted") are covered.
+#
+# Three different reasons, worth keeping distinct:
+#   - inventory, not narrative: files touched, entities, sources, deliverables
+#     (tables of paths and names; token-heavy, story-free)
+#   - already the seed's own framing: transferable insight is the same
+#     distilled conclusion the index row's `insight` column carries, and
+#     feeding it back prominently re-creates the exact compression this
+#     change exists to undo
+#   - instructions addressed to an agent: a handover context or transition
+#     boot prompt is imperative text aimed at whoever reads it next. Passing
+#     that into a headless drafting call hands the model a second, competing
+#     set of orders. Dropping it is a safety call as much as a cost one.
+# Matched as a prefix of the NORMALISED heading (see `_norm_heading`, which
+# strips a leading section number — the wrap-up skill has emitted both
+# "## Handover Context" and "## 9. Handover Context"). Prefix rather than
+# containment on purpose: "Open Threads (handover to architect session)" is a
+# section worth keeping, and containment would eat it.
+NARRATIVE_DENY_PREFIXES = (
+    "files touched",
+    "entities mentioned",
+    "external sources",
+    "deliverables",  # also "Deliverables Created", "Concrete Deliverables"
+    "concrete deliverables",
+    "transferable insight",
+    "handover",  # also "Handover Context", "Handover Prompts"
+    "transition boot prompt",
+    "continuity",  # also "Continuity Ledger", "Continuity Method"
+    "references",
+    "session output",
+)
+
+# Per-heading cap on that heading's own body, and a cap on the whole extract.
+# Measured on the fixture-grade document (2026-08-26 warming-up, 22,757 bytes
+# total): the kept set is ~13.7 KB and its largest single section ~5.4 KB, so
+# neither cap bites on a typical document. They exist so one runaway section
+# cannot starve the later ones, and so a pathological document cannot blow up
+# a headless call's input.
+NARRATIVE_SECTION_CHARS = 6000
+NARRATIVE_TOTAL_CHARS = 20000
+
+FRONTMATTER_MAX_LINES = 60
+
+HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(\S.*)$")
+
+# Redacted from the extract before it reaches the headless prompt. The index
+# row never carried any of these; a session document does — measured across the
+# 86 August documents: `op://` references in 8, absolute `/Users/` paths in 4,
+# email addresses in 8, a tailnet address in 1.
+#
+# This is NOT the D6 gate and does not replace it. D6 inspects the OUTPUT body
+# and is the barrier that decides what may be published; this shrinks what the
+# model is shown in the first place, which is a different and cheaper thing.
+# Redacting rather than skipping the document: these strings appear in ordinary
+# prose about the work, and dropping a whole session because one line names a
+# path would cost far more material than it protects.
+NARRATIVE_REDACTIONS = (
+    (re.compile(r"op://\S+"), "[redacted]"),
+    (re.compile(r"(?<![\w/])(?:/Users|/home)/[^\s`'\"),]+"), "[path]"),
+    (re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b"), "[email]"),
+    (re.compile(r"\b100\.(?:6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.\d+\.\d+\b"), "[address]"),
+    (re.compile(r"\b[\w-]+\.ts\.net\b"), "[host]"),
+)
+
+
+def _slug_tokens(text: str) -> list[str]:
+    return [t for t in re.split(r"[^a-z0-9]+", text.lower()) if t and t not in SLUG_STOPWORDS]
+
+
+def _doc_slug(path: Path) -> str:
+    """The verb-slug part of "YYYY-MM-DD - SESSION_<slug>.md"."""
+    stem = path.stem
+    marker = stem.find(SESSION_DOC_MARKER)
+    return stem[marker + len(SESSION_DOC_MARKER) :] if marker >= 0 else stem
+
+
+def find_session_doc(session: dict, notes_base: Path) -> Path | None:
+    """Resolve the session document for an index row, or None.
+
+    Scores each same-date candidate by what fraction of ITS OWN slug tokens
+    the row's title accounts for — asymmetric on purpose, since the slug is a
+    lossy abbreviation of the title and never the other way round. Requires a
+    clear winner: a tie between two same-date sessions means the row cannot be
+    attributed, and None (degrade to the row) beats a coin flip.
+    """
+    try:
+        candidates = sorted(notes_base.glob(f"{session['date']} *{SESSION_DOC_MARKER}*.md"))
+    except OSError:
+        return None
+    if not candidates:
+        return None
+    title_tokens = set(_slug_tokens(session["title"]))
+    if not title_tokens:
+        return None
+    scored = []
+    for path in candidates:
+        slug_tokens = set(_slug_tokens(_doc_slug(path)))
+        if not slug_tokens:
+            continue
+        scored.append((len(slug_tokens & title_tokens) / len(slug_tokens), path))
+    if not scored:
+        return None
+    scored.sort(key=lambda pair: (-pair[0], str(pair[1])))
+    best_score, best_path = scored[0]
+    if best_score < SESSION_DOC_MIN_SCORE:
+        return None
+    if len(scored) > 1 and scored[1][0] == best_score:
+        return None
+    return best_path
+
+
+def _norm_heading(title: str) -> str:
+    """Lowercase, punctuation-collapsed, with any leading section number gone.
+
+    The number matters: documents in this corpus carry both `## Handover
+    Context` and `## 9. Handover Context`, and a normaliser that keeps the `9`
+    silently un-denies the numbered half of them.
+    """
+    normalised = " ".join(re.split(r"[^a-z0-9]+", title.lower())).strip()
+    return re.sub(r"^\d+ ", "", normalised)
+
+
+def _is_denied(level: int, title: str) -> bool:
+    """Deny applies from level 2 down.
+
+    A level-1 heading is the document's `# SESSION: <title>` line and the
+    ancestor of everything below it, so a title that happens to start with a
+    denied word ("Reviewed Overnight Deliverables…", and there is one in the
+    corpus) would otherwise deny the entire document to an empty extract — and
+    an empty extract degrades silently to the thin index row, which is the
+    exact failure this file exists to fix.
+    """
+    return level >= 2 and _norm_heading(title).startswith(NARRATIVE_DENY_PREFIXES)
+
+
+def _headings(lines: list[str]) -> list[tuple[int, int, str]]:
+    """(line index, level, title) for every heading OUTSIDE a fenced block.
+
+    Fence tracking is not pedantry: session documents embed shell and Python
+    blocks whose comment lines start with `#`, and reading those as headings
+    would slice a section in half at an arbitrary point.
+    """
+    heads: list[tuple[int, int, str]] = []
+    in_fence = False
+    for index, line in enumerate(lines):
+        is_fence = line.lstrip().startswith("```")
+        if not in_fence and not is_fence:
+            match = HEADING_PATTERN.match(line)
+            if match:
+                heads.append((index, len(match.group(1)), match.group(2).strip()))
+        if is_fence:
+            in_fence = not in_fence
+    return heads
+
+
+def extract_narrative(doc_text: str) -> str:
+    """The story-bearing part of a session document, as plain markdown.
+
+    Keeps every section except the deny list, which means new sections the
+    wrap-up skill grows later are included by default rather than silently
+    dropped — the failure this whole change is correcting was material that
+    existed and was never read.
+
+    A heading's span runs to the next heading of the same-or-shallower level,
+    so denying a `##` section drops its `###` children with it, and a section
+    that appears nested in one document and top-level in another (the wrap-up
+    skill emits `Approaches Ruled Out` both ways) is handled identically.
+    """
+    lines = doc_text.splitlines()
+
+    # Drop the YAML frontmatter: it carries no narrative and does carry a
+    # project path. Guarded on actually looking like frontmatter — a document
+    # opening on a markdown horizontal rule would otherwise have everything up
+    # to the next `---` eaten as if it were a header block.
+    if lines and lines[0].strip() == "---":
+        for index in range(1, min(len(lines), FRONTMATTER_MAX_LINES)):
+            if lines[index].strip() == "---":
+                if any(re.match(r"^[A-Za-z_][\w-]*:", line) for line in lines[1:index]):
+                    lines = lines[index + 1 :]
+                break
+
+    heads = _headings(lines)
+    if not heads:
+        return ""
+
+    kept: list[str] = []
+    denied_at_level: int | None = None  # deepest open denied section's level
+    for position, (start, level, title) in enumerate(heads):
+        # A denied section owns every heading below it until one at its own
+        # level or shallower closes it. Walking only to the immediate parent
+        # would let a grandchild out: `## Handover Context` denies `### Detail`
+        # but `### Detail` is not itself denied, so `#### Deeper` would be kept
+        # — republishing the tail of a block excluded for being instructions
+        # addressed to an agent.
+        if denied_at_level is not None and level <= denied_at_level:
+            denied_at_level = None
+        if denied_at_level is not None:
+            continue
+        if _is_denied(level, title):
+            denied_at_level = level
+            continue
+        # This heading's OWN body: up to the next heading of any level. Nested
+        # sections are emitted by their own iteration, so nothing is doubled.
+        end = heads[position + 1][0] if position + 1 < len(heads) else len(lines)
+        body = "\n".join(lines[start + 1 : end]).strip("\n")
+        if len(body) > NARRATIVE_SECTION_CHARS:
+            body = body[:NARRATIVE_SECTION_CHARS].rstrip() + "\n…[section truncated]"
+        kept.append(lines[start] if not body else f"{lines[start]}\n\n{body}")
+
+    text = "\n\n".join(kept).strip()
+    if len(text) > NARRATIVE_TOTAL_CHARS:
+        text = text[:NARRATIVE_TOTAL_CHARS].rstrip() + "\n…[extract truncated]"
+    for pattern, replacement in NARRATIVE_REDACTIONS:
+        text = pattern.sub(replacement, text)
+    return text
+
+
+def session_narrative(session: dict, notes_base: Path) -> str:
+    """`extract_narrative` of the resolved document, or "" — never raises.
+
+    Every failure mode here (no document, ambiguous match, unreadable file,
+    a document with no headings) degrades to the empty string and therefore
+    to the index-row text. A seed with thinner material is a worse post; a
+    tick that died reading a note is no post at all.
+    """
+    path = find_session_doc(session, notes_base)
+    if path is None:
+        return ""
+    try:
+        return extract_narrative(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError):
+        return ""
 
 
 class EngineError(Exception):
@@ -330,14 +609,33 @@ def score_session(session: dict, git_hits: list[str]) -> tuple[int, list[str]]:
     return score, reasons
 
 
-def build_text(session: dict, git_hits: list[str]) -> str:
-    parts = []
-    if session["outcome"] and session["outcome"] != "-":
-        parts.append(f"Outcome: {session['outcome']}")
-    if session["insight"] and session["insight"] != "-":
-        parts.append(f"Insight: {session['insight']}")
-    if session["tags"] and session["tags"] != "-":
-        parts.append(f"Tags: {session['tags']}")
+def build_text(session: dict, git_hits: list[str], narrative: str = "") -> str:
+    """The seed's source material — the document's narrative if one resolved,
+    the index row's own columns if not.
+
+    The two paths are deliberately NOT merged. On the narrative path the row's
+    `outcome`/`insight` columns are left out: they are the pre-compressed
+    conclusion, and restating them beside the story they were compressed from
+    puts the finished answer at the top of the model's source material. On the
+    fallback path they are all there is.
+    """
+    parts: list[str] = []
+    if narrative:
+        # No synthetic header line. The document's own `# SESSION: <title>` H1
+        # already opens the extract with the title and its `**Tags:**` line
+        # carries the tags, so adding them would duplicate — and `text` is
+        # declared quotable source to the model, unlike `seed_ref`, so nothing
+        # should be promoted into it that is not already there.
+        parts.append(narrative)
+    else:
+        # The pre-2026-08-28 shape, unchanged: when no document resolved, the
+        # row's own columns are all there is.
+        if session["outcome"] and session["outcome"] != "-":
+            parts.append(f"Outcome: {session['outcome']}")
+        if session["insight"] and session["insight"] != "-":
+            parts.append(f"Insight: {session['insight']}")
+        if session["tags"] and session["tags"] != "-":
+            parts.append(f"Tags: {session['tags']}")
     if git_hits:
         parts.append("Commits: " + "; ".join(git_hits))
     if not parts:
@@ -387,6 +685,11 @@ def run(args) -> int:
 
     repo_index = build_repo_index(os.environ.get("X_COMMS_REPO_DIRS"))
 
+    # Session documents live beside SESSION_INDEX.md, so a `--index` override
+    # relocates document lookup with it — which is what makes a fully isolated
+    # scratch run possible without a second flag.
+    notes_base = index_path.parent
+
     report = {
         "status": "ok",
         "scanned": len(sessions),
@@ -394,6 +697,7 @@ def run(args) -> int:
         "skipped_posted": 0,
         "skipped_ledgered": 0,
         "skipped_duplicate": 0,
+        "with_document": 0,
         "seeds": [],
     }
 
@@ -432,9 +736,10 @@ def run(args) -> int:
                 "source": "miner",
                 "seed_ref": ref,
                 "seed_key": key,
-                "text": build_text(session, git_hits),
                 "score": score,
                 "score_reasons": reasons,
+                "_session": session,
+                "_git_hits": git_hits,
             }
         )
 
@@ -442,7 +747,24 @@ def run(args) -> int:
     # as the tiebreak — one composite key, no reliance on sort stability.
     candidates.sort(key=lambda c: (c["score"], c["seed_ref"]), reverse=True)
 
-    report["seeds"] = candidates[: args.max_seeds]
+    # `text` is built only for the seeds that survive the cut. Scoring does not
+    # read the document, so resolving and extracting one per in-window
+    # candidate would read (and discard) tens of files per tick — on a deep
+    # window that is ~60 documents to emit at most 3.
+    seeds = []
+    for candidate in candidates[: args.max_seeds]:
+        session = candidate.pop("_session")
+        git_hits = candidate.pop("_git_hits")
+        narrative = session_narrative(session, notes_base)
+        if narrative:
+            report["with_document"] += 1
+        # Its own field, not a `score_reasons` entry: that list's contract is
+        # that every element names points scored, and this scores nothing.
+        candidate["has_document"] = bool(narrative)
+        candidate["text"] = build_text(session, git_hits, narrative)
+        seeds.append(candidate)
+
+    report["seeds"] = seeds
     print(json.dumps(report, ensure_ascii=False))
     return 0
 

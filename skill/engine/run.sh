@@ -187,6 +187,14 @@ fi
 STATUS="incomplete"
 REASON="-"
 SEEDS_MINED="-"
+# How many of the mined seeds carried a resolved session document rather than
+# degrading to the thin SESSION_INDEX row. `mine.py` degrades silently by
+# design — a missing or ambiguous document must never fail a tick — so without
+# this field a regression in document resolution (a wrap-up naming-convention
+# change, a dropped `SESSION_` marker) would produce ticks that read exactly
+# like healthy ones while quietly drafting from ~5% of the material again.
+# That is the failure this whole path exists to correct, so it gets a counter.
+DOCS="-"
 DRAFTED="-"
 SKIPPED="-"
 REJECTED="-"
@@ -216,9 +224,9 @@ emit_tick() {
     # path — the tick log is the operator's only view of an unattended run and is
     # kept publishable so it can be read anywhere.
     local line
-    line="$(printf '%s mode=%s forced=%s status=%s reason=%s seeds_mined=%s drafted=%s skipped=%s rejected=%s errors=%s expired=%s queued=%s' \
+    line="$(printf '%s mode=%s forced=%s status=%s reason=%s seeds_mined=%s docs=%s drafted=%s skipped=%s rejected=%s errors=%s expired=%s queued=%s' \
         "$(now_ts)" "$MODE" "$FORCED" "$STATUS" "$REASON" \
-        "$SEEDS_MINED" "$DRAFTED" "$SKIPPED" "$REJECTED" "$ERRORS" \
+        "$SEEDS_MINED" "$DOCS" "$DRAFTED" "$SKIPPED" "$REJECTED" "$ERRORS" \
         "$EXPIRED" "$QUEUED")"
     if [ "$TICK_LOG" = "-" ]; then
         printf '%s\n' "$line" >&2
@@ -479,6 +487,7 @@ if [ "$FORCED" -eq 0 ]; then
         fail mine:unreadable_report "mine.py exited 0 but its report is not a healthy JSON object"
     fi
     SEEDS_MINED="$(jfield "$SEEDS_JSON" seeds 0)"
+    DOCS="$(jfield "$SEEDS_JSON" with_document 0)"
     if [ "$SEEDS_MINED" = "0" ]; then
         # Smoke #5: a tick with nothing fresh to say is a correct outcome. Say so
         # in the status field so a quiet day is not read as a broken engine.

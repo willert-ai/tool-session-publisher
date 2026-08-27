@@ -16,7 +16,7 @@ An ambient drafting system for X, packaged as a Claude Code skill. A scheduled l
 
 - **Authoritative design:** `planning/SPEC-x-comms-engine.md` rev 2 (local, gitignored) — the ambient system. `planning/SPEC.md` describes the superseded v0 pull model and survives only where the two do not disagree.
 - **Skill shipped and installed** (`ln -s <repo>/skill ~/.claude/skills/session-publisher`, 2026-08-25). `skill/` carries `SKILL.md`, seven stdlib-only helpers (`select`, `save`, `thread`, `mirror`, `queue`, `draft`, `mine`), `engine/` (the ambient tick `run.sh` + the headless prompt scaffold), and `prompts/`.
-- **x-comms-engine v1 — SHIPPED, chain complete (branch `feat/x-comms-engine`, 6 commits, not yet merged).** The skill is no longer pull-model. A launchd user agent (`ai.fero.x-comms`, daily 07:30) runs `skill/engine/run.sh` with zero Claude sessions open: it expires the queue, mines `SESSION_INDEX.md` + git logs for seeds, drafts finished ≤280-char bodies through a headless `claude -p`, and files them into a queue **outside this repo** at `$SESSION_PUBLISHER_NOTES_DIR/posts/x/queue/`. Sunday is a deep tick (14-day window, ≤3 drafted as one narrative arc); every other day is ambient (3 days, ≤2 standalone singles). The operator reviews with `python3 skill/helpers/queue.py review` — one action per entry (`[a]pprove [e]dit [k]ill [c]opy [s]kip`) — and approval appends the body to the private corpus automatically. Nothing publishes itself; the operator pastes an approved body into X. **D1 is proven in production**: it fired unattended at 07:32 on 2026-08-27 and drafted two posts with nobody present. **Blocked on content aim, not construction.** The operator rejected 9 of 9 drafts as unreadable and all-about-testing; `mine.py` feeds the model a ~1.2 KB `SESSION_INDEX.md` row while the ~23 KB session document sits beside it, so every seed is an engineering conclusion with the story compressed out. **Merge is held** until the queue produces a post worth publishing — see `planning/task_plan.md`. Authoritative design is the local, gitignored `planning/SPEC-x-comms-engine.md` rev 2; it supersedes `planning/SPEC.md` where the two disagree. Per-commit history (C1–C6, what each shipped and every `/review` finding) lives in `planning/progress.md` + `planning/findings.md` and in the commit messages — **not here**: this bullet is a current-state snapshot, not a changelog.
+- **x-comms-engine v1 — SHIPPED, chain complete (branch `feat/x-comms-engine`, 6 commits, not yet merged).** The skill is no longer pull-model. A launchd user agent (`ai.fero.x-comms`, daily 07:30) runs `skill/engine/run.sh` with zero Claude sessions open: it expires the queue, mines `SESSION_INDEX.md` + git logs for seeds, drafts finished ≤280-char bodies through a headless `claude -p`, and files them into a queue **outside this repo** at `$SESSION_PUBLISHER_NOTES_DIR/posts/x/queue/`. Sunday is a deep tick (14-day window, ≤3 drafted as one narrative arc); every other day is ambient (3 days, ≤2 standalone singles). The operator reviews with `python3 skill/helpers/queue.py review` — one action per entry (`[a]pprove [e]dit [k]ill [c]opy [s]kip`) — and approval appends the body to the private corpus automatically. Nothing publishes itself; the operator pastes an approved body into X. **D1 is proven in production**: it fired unattended at 07:32 on 2026-08-27 and drafted two posts with nobody present. **Blocked on content aim, not construction.** The operator rejected 9 of 9 drafts as unreadable and all-about-testing. Root cause was seed depth, not the prompt or the persona: `mine.py` fed the model a ~1.2 KB `SESSION_INDEX.md` row while the ~23 KB session document sat beside it. Fixed 2026-08-28 — `mine.py` now resolves the session document from the row and builds `text` from its narrative sections, the row survives as `seed_ref` only, and the task prompts aim at a moment a reader could use rather than an engineering insight. **Merge is held** until the queue produces a post the operator would actually publish — that gate is the operator's judgement, not a passing test; see `planning/task_plan.md`. Authoritative design is the local, gitignored `planning/SPEC-x-comms-engine.md` rev 2; it supersedes `planning/SPEC.md` where the two disagree. Per-commit history (C1–C6, what each shipped and every `/review` finding) lives in `planning/progress.md` + `planning/findings.md` and in the commit messages — **not here**: this bullet is a current-state snapshot, not a changelog.
 - **Pre-mortem:** `planning/PreMortem-session-publisher-2026-05-11.md` documents 4 Tigers + 3 Elephants identified before the build window and how each was resolved.
 - **Stage 5.5 corpus-mirror (feature thread):** Phase C shipped 2026-05-16. `skill/helpers/mirror.py` is a pure-loader helper (parses `examples.local.md`, drops `near_duplicate_of` cluster non-reps, emits JSON). `SKILL.md` carries the new Stage 5.5 section (load → infer+select → rewrite → prompt → response). `examples-template.md` documents `guide_compliance` + `near_duplicate_of`. **Pivot:** SPEC v0.2 §4 deterministic tag-overlap pipeline superseded — Claude does semantic selection in Stage 5.5 prose. Rationale annotated inline in the SPEC + in `planning/findings.md`. Next: first end-to-end run with new stage will calibrate register-fit honesty. Authoritative design: SPEC v0.2 (annotated) + SKILL.md §5.5 (shipped behavior).
 - **Drafting guide v1.3 shipped 2026-05-18** based on `xai-org/x-algorithm` (Jan 2026) signal analysis. Added Layer 1 rule 16 (link placement — link in first reply, not body, to avoid 30–90% reach loss) and new "Post-publish protocol" section (author-reply within 1h + posting-window timing). Layer 2 renumbered 17–24 (was 16–23); 9 corpus notes updated. SKILL.md Stage 7 now includes `author_replied: yes/no` tracking. Delta artifact: `planning/DELTA_algo-vs-drafting-guide-2026-05-18.md`. Edits E4 (H5 tone caveat) and E5 (rule 5 density) deferred.
@@ -186,6 +186,51 @@ modules. Both filenames are fixed by contract — don't rename, work around:
   silently attribute one project's commits to another. Whole-tag equality against dirnames, never
   substring containment. `by_name` and `by_alias` stay separate dicts for the same reason: a
   prefix-stripped alias collision must null only the ambiguous *alias*, never an exact match.
+
+### The seed's source material
+
+- **The `SESSION_INDEX.md` row and the session document answer different questions — only the
+  document is postable.** The row is written by the wrap-up skill for "what did I do this week",
+  so it is a conclusion with the journey already compressed out; feeding it to a drafting model
+  bought nine drafts about tests and reviews, rejected 9 of 9. `mine.py` builds `text` from the
+  document's narrative sections; the row survives as `seed_ref` **only**, which is what it is good
+  for — the ledger dedup key, asserted verbatim by C4's gate. Never merge the two: restating the
+  row's `outcome`/`insight` beside the story puts the finished answer at the top of the source.
+- **A document filename is not a transform of its index title, so resolution scores and refuses.**
+  The wrap-up skill invents a shortened verb slug that drops, reorders and truncates words
+  ("Closed RUNBOOK § 8, disproved the 390px defect, and turned off LiveKit observability" →
+  `closed-runbook-8-and-disabled-livekit-observability`). `find_session_doc` scores what fraction
+  of the *slug's* tokens the title accounts for — asymmetric, since the slug is the lossy side —
+  and returns None on a score below threshold or on any tie. Degrading to the thin row is always
+  better than attributing session A's story to session B's `seed_ref`, which would publish a claim
+  about work that did not happen.
+- **Sections written *at* a future agent are excluded, and that is a safety call.** `Transition
+  Boot Prompt` and `Handover Context` are imperative instructions; quoting them into a headless
+  drafting call hands the model a second, competing set of orders. They sit on the same deny list
+  as the inventory tables, for a different reason. Everything not denied is kept, so sections the
+  wrap-up skill grows later are included by default — the failure being corrected here was
+  material that existed and was never read.
+- **Seed `text` is real markdown and carries its own code fences.** `draft.py` quotes it inside a
+  fence computed by `fence_for()` — longer than the longest backtick run in the text. A fixed
+  ```` ``` ```` is closed by the seed's first fence, and everything after it stops being quoted
+  source and starts reading as instructions.
+- **Prompt assembly is ONE `re.sub` pass over the template, and must stay that way.** Sequential
+  `str.replace` plus a post-substitution leftover scan breaks in both directions once `text` is a
+  whole document: a `{{REPO_NAME}}` quoted in a repo-bootstrap session reads as an unfilled
+  template slot and kills the tick (and since the seed never reaches `queue.py add`, no ledger
+  event is written, so it is re-mined and re-kills every tick until it ages out), while a seed
+  containing the literal `{{TASK}}` would have the real task substituted into it. One pass over the
+  template means substituted text is output, never input.
+- **`extract_narrative` redacts leak shapes before the prompt, and that is not the D6 gate.** D6
+  inspects the output body and decides what may be published; this only shrinks what the model is
+  shown. The index row never carried absolute paths, emails or tailnet addresses — a session
+  document does. Redact rather than skip the document: those strings sit in ordinary prose, and
+  dropping a whole session over one path costs far more material than it protects.
+- **The tick line carries `docs=<n>` because this path degrades silently by design.** Every
+  resolution failure returns `""` and falls back to the thin row, so a regression in document
+  resolution would produce ticks that read exactly like healthy ones. `docs=-` is correct on the
+  forced-fixture path (a fixture has no document); `docs=0` with `seeds_mined>0` means the fix has
+  stopped working.
 
 ### launchd
 

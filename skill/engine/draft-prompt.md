@@ -58,9 +58,21 @@ code, not by judgement:
 
 ## E. Seeds
 
-Each seed is the raw material for one post. `text` is the source excerpt: it is the ONLY place
-numbers, tense and causal claims may come from. `seed_ref` is a reference line for the operator's
-records — it may name private work, and nothing in it may be reproduced in a body.
+Each seed is the raw material for one post.
+
+`text` is the operator's own record of that work session — what was attempted, what was tried,
+what was ruled out, what was held, what was still open, and how the session judged itself
+afterwards. It is long, and it is quoted whole rather than summarised, because the post you are
+looking for is somewhere inside it and no summary would have kept it. **It is the ONLY place
+numbers, tense and causal claims may come from.** Nothing outside it may enter a body — not
+context you infer, not a figure you compute from two of its figures.
+
+The record was written to log a project, not to be published. Its headline sentences are already
+compressed into conclusions; the material worth posting is usually further down, in the parts
+describing what actually happened.
+
+`seed_ref` is a reference line for the operator's records — it may name private work, and nothing
+in it may be reproduced in a body.
 
 {{SEEDS}}
 

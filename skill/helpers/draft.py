@@ -317,9 +317,24 @@ def render_vocabulary(vocab: dict[str, tuple[str, ...]]) -> str:
     return "\n".join(lines)
 
 
+def fence_for(text: str) -> str:
+    """A backtick fence longer than any run inside `text`.
+
+    Seed `text` is real source material, not a summary — since 2026-08-28 it
+    carries a session document's narrative sections, which routinely embed
+    their own fenced code blocks. A fixed ``` fence would be closed by the
+    first one, dumping the rest of the seed into the prompt as instructions
+    rather than as quoted source.
+    """
+    longest = max((len(run) for run in re.findall(r"`+", text)), default=0)
+    return "`" * max(3, longest + 1)
+
+
 def render_seeds(seeds: list[dict]) -> str:
     blocks = []
     for seed in seeds:
+        text = str(seed["text"]).strip()
+        fence = fence_for(text)
         blocks.append(
             "\n".join(
                 [
@@ -331,9 +346,9 @@ def render_seeds(seeds: list[dict]) -> str:
                     "",
                     "`text` (the only source of numbers, tense and causation):",
                     "",
-                    "```",
-                    str(seed["text"]).strip(),
-                    "```",
+                    fence,
+                    text,
+                    fence,
                 ]
             )
         )
@@ -354,19 +369,43 @@ def assemble_prompt(seeds: list[dict], mode: str, vocab: dict) -> str:
             encoding="utf-8"
         )
 
-    filled = template
-    for token, value in (
-        ("{{PERSONA}}", persona),
-        ("{{GUIDE}}", guide),
-        ("{{INSIGHTS}}", insights),
-        ("{{TAG_VOCABULARY}}", render_vocabulary(vocab)),
-        ("{{SEEDS}}", render_seeds(seeds)),
-        ("{{TASK}}", task),
-    ):
-        filled = filled.replace(token, value)
-    leftover = re.findall(r"\{\{[A-Z_]+\}\}", filled)
-    if leftover:
-        raise EngineError("engine:template", f"unfilled placeholders: {', '.join(sorted(set(leftover)))}")
+    values = {
+        "PERSONA": persona,
+        "GUIDE": guide,
+        "INSIGHTS": insights,
+        "TAG_VOCABULARY": render_vocabulary(vocab),
+        "SEEDS": render_seeds(seeds),
+        "TASK": task,
+    }
+
+    # ONE pass over the template, with substituted text never rescanned. Both
+    # halves of that matter now that seed `text` is a whole session document
+    # rather than a few index columns:
+    #
+    #   - a `{{REPO_NAME}}` quoted inside a document (repo-bootstrap sessions
+    #     carry these — `github-ops` mandates a `grep -r "{{"` check, so they
+    #     keep being written) is indistinguishable from an unfilled template
+    #     slot once it is in the assembled string. A post-substitution leftover
+    #     scan reads it as a template fault and kills the whole tick, and since
+    #     the seed never reaches `queue.py add` no ledger event is written, so
+    #     it is re-mined and re-kills every tick until it ages out.
+    #   - a seed containing the literal `{{TASK}}` would, under sequential
+    #     replace, have the real task instructions substituted INTO it.
+    #
+    # Substituting via one `re.sub` callback closes both: the pattern walks the
+    # template's own text, and whatever the callback returns is output, not input.
+    missing: list[str] = []
+
+    def substitute(match: re.Match) -> str:
+        name = match.group(1)
+        if name not in values:
+            missing.append(name)
+            return match.group(0)
+        return values[name]
+
+    filled = re.sub(r"\{\{([A-Z_]+)\}\}", substitute, template)
+    if missing:
+        raise EngineError("engine:template", f"unfilled placeholders: {', '.join(sorted(set(missing)))}")
     return filled
 
 
