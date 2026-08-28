@@ -102,23 +102,70 @@ sessions by project name:
 
 ## Architecture
 
-A single Claude Code skill + three short Python helpers + one researched
-drafting guide. There is no cron, no GitHub Actions, no separate API key,
-no `.env`. The "drafting LLM" is the running Claude — the skill reads a
-23-rule drafting guide and applies it in-session.
+A single Claude Code skill + a handful of stdlib-only Python helpers + one
+researched drafting guide. There are no GitHub Actions, no server, no database,
+no separate API key, no `.env` — the only scheduled piece is a local launchd
+user agent (see below). In the interactive path the "drafting LLM" is the
+running Claude, applying a 24-rule drafting guide in-session; in the ambient
+path it is the same guide handed to a headless `claude -p` call with no session
+open.
 
 ```
 session-publisher/
 ├── skill/
-│   ├── SKILL.md                    # the skill itself (~180 lines)
+│   ├── SKILL.md                    # the skill itself
 │   ├── helpers/
 │   │   ├── select.py               # candidate sessions from SESSION_INDEX
 │   │   ├── thread.py               # narrative thread from posts/x/
-│   │   └── save.py                 # write approved draft to $NOTES_DIR
+│   │   ├── save.py                 # write approved draft to $NOTES_DIR
+│   │   ├── mirror.py               # load the private register corpus
+│   │   ├── queue.py                # the ambient queue contract + review loop
+│   │   ├── mine.py                 # SESSION_INDEX + git logs → scored seeds
+│   │   └── draft.py                # seeds → finished bodies, headless
+│   ├── engine/
+│   │   ├── run.sh                  # one ambient tick, driven by launchd
+│   │   └── *.md                    # the assembled headless drafting prompt
 │   └── prompts/
 │       └── drafting-guide.md       # researched X-posting best practice
 └── planning/                       # SPEC + pre-mortem
 ```
+
+---
+
+## Ambient mode (optional)
+
+The skill also runs unattended. A scheduled `skill/engine/run.sh` expires the
+queue, mines the last few days of sessions for seeds, drafts finished bodies
+through a headless `claude -p` call, and files them in
+`$SESSION_PUBLISHER_NOTES_DIR/posts/x/queue/`. You then review the queue with
+`python3 skill/helpers/queue.py review` and paste what you approve into X.
+
+Try one tick by hand first — nothing is scheduled until you schedule it:
+
+```bash
+export SESSION_PUBLISHER_NOTES_DIR="/absolute/path/to/your/notes"
+export SESSION_PUBLISHER_TZ="Europe/Berlin"
+skill/engine/run.sh --mode ambient
+python3 skill/helpers/queue.py list
+```
+
+`run.sh` requires both variables and refuses to run without them, because a
+scheduler inherits nothing from your login shell and the failure would
+otherwise be silent: the queue would appear under `~/personal-notes` with UTC
+timestamps. On macOS, wrap it in a launchd user agent with one
+`StartCalendarInterval` entry — `run.sh` reads the weekday itself and picks the
+daily or the weekly cadence, so a second entry would double-fire. Pass an
+absolute `X_COMMS_CLI` (a scheduler's `PATH` will not find `claude`, and
+`run.sh` rejects anything that is not an absolute path) and give the agent
+absolute `StandardOutPath` / `StandardErrorPath`.
+
+One structured tick line per run lands in `$X_COMMS_LOG_DIR/tick.log` —
+`$HOME/Library/Logs/ai.fero.x-comms` unless you set that variable. It carries
+counts and reason codes only, never a post body. Read the `status=` field
+first: `ok` drafted something, `idle` found nothing fresh to say, `capacity`
+declined because the queue is already full, `no_output` drafted nothing that
+passed the gates, `locked` backed off because another tick was running,
+`interrupted` was killed mid-run, and `failed` could not run at all.
 
 ---
 
@@ -144,7 +191,7 @@ Key design documents:
 
 - `planning/SPEC.md`
 - `planning/PreMortem-session-publisher-2026-05-11.md`
-- `skill/prompts/drafting-guide.md` — 23 rules, 11 hook templates,
+- `skill/prompts/drafting-guide.md` — 24 rules, 12 hook templates,
   AI/agentic Layer 2 overrides
 
 ---
