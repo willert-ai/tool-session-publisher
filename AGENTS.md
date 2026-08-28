@@ -261,6 +261,17 @@ modules. Both filenames are fixed by contract — don't rename, work around:
 - **Three gitignored files sit in `skill/prompts/`** — `persona.local.md`, `examples.local.md`,
   `private-terms.local.md` — covered by `*.local.md` plus `skill/prompts/persona*.md`. `insights.local.md`
   is the D14 socket: read iff present, absent is correct today.
+- **All three are SYMLINKS into `$SESSION_PUBLISHER_NOTES_DIR/x-comms/prompts/`; the real files live
+  there and must stay there.** Gitignoring them keeps them out of a public repo, which is the point —
+  but it also means they are in no commit, appear in no diff, cannot be reviewed by a subagent reading
+  a change set, and are **not recoverable from git**. `persona.local.md` is the register the drafting
+  model actually obeys; losing it loses the calibration that produced it. The notes directory is
+  Drive-synced, so it is versioned and off-machine, and it is where the queue and the posts already
+  live for exactly this reason. Consequences worth knowing: the symlink targets are **absolute**, so
+  changing `SESSION_PUBLISHER_NOTES_DIR` breaks them (re-point, don't re-create); and a dangling link
+  fails the tick closed with `engine:persona` rather than drafting without a register, which is the
+  correct failure. **A change to any of these three is invisible to `/review` — say so when dispatching
+  one, and have it read the file directly.**
 
 ## Out of scope
 
