@@ -92,7 +92,8 @@ This is a Claude Code skill, not a standalone CLI.
 - **Smoke-test helpers:** `python3 skill/helpers/select.py --days 7`, `python3 skill/helpers/thread.py --days 7`, `python3 skill/helpers/save.py "<session_source>" --body "test"`, `python3 skill/helpers/queue.py --validate`.
 - **Smoke-test the drafting engine without spending a model call:** `X_COMMS_FORCE_SEED=1 python3 skill/helpers/draft.py --dry-run` assembles the prompt and reports its size; `--stub-response <file>` feeds a canned model reply through the full gate + write path; `X_COMMS_CLI=<script>` swaps the CLI for one that hangs or exits non-zero, which is how the timeout and exit-code branches are tested. A real end-to-end run is `X_COMMS_FORCE_SEED=1 python3 skill/helpers/draft.py --queue-dir /tmp/q` (add `--mode arc` for the Sunday batch path).
 - **Smoke-test one ambient tick without a scheduler:** `skill/engine/run.sh --mode ambient` (or `--mode deep` for the arc path) runs the real pipeline against whatever `SESSION_PUBLISHER_NOTES_DIR` points at. Point that at a scratch directory holding a `SESSION_INDEX.md` and set `X_COMMS_CLI` to a stub script that prints a `{"is_error": false, "result": "<json>"}` envelope, and every branch — idle, capacity skip, expire, gate rejection, CLI failure — is exercisable for free. `X_COMMS_LOG_DIR` isolates the tick log.
-- **No build pipeline.** Helpers are standalone Python 3.11+ scripts; stdlib only. `run.sh` is bash 3.2-compatible and shellcheck-clean at `-S warning`.
+- **Arm the 07:45 review nag:** `bash skill/engine/review_reminder.sh --install` (`--status`, `--uninstall`; no argument prompts immediately). It reports on the 07:30 tick and opens the review loop — it never drafts. Every branch is reachable without a scheduler: `X_COMMS_REVIEW_LOG_DIR` isolates its log, `X_COMMS_REVIEW_WAIT=0` skips the in-flight-tick poll, `X_COMMS_REVIEW_STALE_HOURS` moves the alert threshold, and a stub `osascript` earlier in `PATH` stands in for the dialog — which is how the silent, review, stale, failed, no-tick-log, TCC-denied and unreadable-queue branches were each exercised.
+- **No build pipeline.** Helpers are standalone Python 3.11+ scripts; stdlib only. `run.sh` and `review_reminder.sh` are bash 3.2-compatible and shellcheck-clean at `-S warning`.
 - **No test suite.** Smoke tests are inline and documented above. Friction-driven extension only.
 
 ## Conventions & gotchas
@@ -250,6 +251,40 @@ modules. Both filenames are fixed by contract — don't rename, work around:
 - **That same code is the one place body-derived content reaches the tick line** — a considered
   exception to "bodies never logged" (the digits are the diagnosis, and you never see the body
   otherwise). It is why the log stays local rather than treated as publishable-anywhere.
+
+### The 07:45 review nag (`review_reminder.sh`)
+
+- **An AppleScript string literal cannot contain a raw newline.** It is a *compile* error (−2741),
+  so the dialog never appears — and a dialog that never appeared is indistinguishable from one the
+  operator dismissed. The sibling `rls_reminder.sh` never hit this because it assembles its text in
+  AppleScript with `& return &`; ours assembles in bash, so `as_str` splices multi-line text into
+  `"line" & return & "" & return & "line"`. Any change to dialog copy must be re-checked with
+  `osacompile` — **from outside the Claude Code sandbox**, which blocks scripting-addition
+  terminology and fails even `display dialog "hello"`, producing a false negative that looks exactly
+  like a real syntax error.
+- **`ask` is always called inside a command substitution, so it cannot report through a variable.**
+  Capturing osascript's stderr into `DIALOG_ERR=` was silently discarded with the subshell and every
+  failure logged as "no stderr" — reintroducing, inside the reporting channel, the exact blindness
+  the capture exists to prevent. It writes to `DIALOG_ERR_FILE`; `open_terminal` reuses that file
+  rather than calling `mktemp`, because a failed `mktemp` takes the redirect down with it and bash
+  then reports "could not launch Terminal" for a Terminal that was never asked.
+- **Quiet is a state, and it is logged.** On a healthy morning with an empty queue there is no
+  dialog — so the log line is the only evidence the job ran at all, and "silent because fine" and
+  "silent because broken" are otherwise the same observation. Hence `~/Library/Logs`, never `/tmp`.
+- **Staleness is measured in hours, not in "did it run today".** `StartCalendarInterval` defers to
+  the next wake, so opening the lid at 14:00 fires the 07:30 tick and this 07:45 job at nearly the
+  same moment in an order launchd does not promise. A date comparison cries failure on every late
+  wake; the 36-hour ceiling plus a capped poll while `ai.fero.x-comms` is running tolerates the race.
+  An **unparseable** timestamp counts as unhealthy, not unknown — this script may cry wolf, it may
+  not go quiet.
+- **It restates none of the engine's configuration.** Notes dir, interpreter and tick-log path are
+  read out of `ai.fero.x-comms.plist` at run time. A second copy drifts, and the failure it produces
+  is a reminder counting an empty queue in a directory the engine never writes to, reporting
+  "nothing today" forever. Environment variables take precedence over the plist purely as the test
+  seam; this job's own plist sets nothing but `PATH`.
+- **`PlistBuddy` prints "File Doesn't Exist, Will Create:" to stdout, not stderr.** Reading a baked
+  path from a missing plist therefore captures that sentence as the path and reports a mismatch that
+  is really a missing install. Guard the read on the file existing.
 
 ### Coupled counts (grep these together or they drift)
 
