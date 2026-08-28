@@ -171,7 +171,13 @@ ANTI_VOICE = (
     ("gate:anti_voice:hashtag", re.compile(r"(?:^|\s)#\w")),
     ("gate:anti_voice:url", re.compile(r"https?://|\bwww\.", re.IGNORECASE)),
     ("gate:anti_voice:exclamation", re.compile(r"!")),
-    ("gate:anti_voice:first_person_plural", re.compile(r"\b(?:we|we'?re|we'?ve|our|ours)\b", re.I)),
+    # The apostrophe is NOT optional in the contractions. With `we'?re`, the
+    # regex matches the ordinary word "were" — `we` + a skipped apostrophe +
+    # `re`, and the trailing \b then lands after "were" quite happily. That
+    # rejected every draft containing one of the commonest words in English,
+    # invisibly, because rejections are logged body-free by design. It is why
+    # `first_person_plural` looked like the model's favourite failure.
+    ("gate:anti_voice:first_person_plural", re.compile(r"\b(?:we|we'(?:re|ve|ll|d)|our|ours)\b", re.I)),
     ("gate:anti_voice:not_just", re.compile(r"\bnot just\b[^.]{0,60}\bit'?s\b", re.IGNORECASE)),
     ("gate:anti_voice:slop_phrase", re.compile("|".join(re.escape(p) for p in SLOP_PHRASES), re.I)),
 )
