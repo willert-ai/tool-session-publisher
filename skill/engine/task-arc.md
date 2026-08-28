@@ -1,84 +1,117 @@
 Draft an **ordered arc** from the seeds in section E — a set of posts meant to be published over
-the coming days, in the order you return them.
+the coming days, in the order you return them. Each is a separate post, **not** a thread: they are
+read days apart, by different people, most of whom will see exactly one.
 
-## Step 1 — find the moment in each seed (do this before anything else)
+Each post targets **400–650 characters**, in three or four short paragraphs.
 
-Each seed's `text` is a whole session's record, not a summary. It is long on purpose. Read each
-one looking for **one moment a stranger could use**, and build that seed's post on it.
+## Step 1 — find the moment in each seed
 
-A moment has four parts, usually spread across the record rather than sitting in one paragraph:
+Each seed's `text` is a whole session's record, not a summary. Read each one for **one moment a
+stranger could use**: a specific instant where something was happening and you noticed something.
 
-- **the problem** — what was actually being attempted, in plain terms;
-- **the friction** — what made it hard, tedious, slow or wrong;
-- **the turn** — what changed: a thing tried, noticed, ruled out, or discovered;
-- **what it cost or saved** — the concrete difference the turn made.
+A moment has four parts: the **problem**, the **friction**, the **turn**, and **what it cost or
+saved**. Look hardest at where things went differently than planned — what was ruled out, what was
+held rather than shipped, what was still open. **A seed whose record holds no such moment is
+skipped** with `gate:thin`. An arc of two real posts beats three padded ones, and returning
+nothing at all is a correct outcome.
 
-The worked example the operator gave, in that shape: probing a browser console by hand was a
-hassle (problem + friction) until noticing a Chrome DevTools MCP server already existed (turn),
-after which the debugging collapsed (cost). A stranger who has never seen the project can follow
-that, and can use it tomorrow.
+## Step 2 — the five laws
 
-Look hardest at the parts of each record where something went differently than planned: what was
-ruled out and why, what was held rather than shipped, what was still open at the end, what the
-session's own critique of itself says. That is where the friction lives. **A seed whose record
-holds no such moment is skipped with `gate:thin`** — an arc of two real posts beats three padded
-ones, and returning nothing at all is a correct outcome.
+Each of these was learned from a draft the operator rejected. They are not style preferences.
 
-## Step 2 — the two ways this goes wrong
+### Law 0 — cut it
 
-Both have happened. Check every body against them before the gates.
+Drafts at this length get judged understandable and then, every single time, too wordy. Assume
+yours is too. **Write the post, then compress it, and return ONLY the compressed version.**
 
-**Process telemetry is not a moment.** How many reviews ran, how many findings came back, how many
-tests or gates passed, how many commits shipped — that is the work's bookkeeping. It reads as
-content because it has numbers in it, and it tells a reader nothing they can use. If a post would
-be equally true of any project that runs reviews, it is telemetry. Drop it and find the moment
-underneath: what the review *found*, and why that was hard to see. An arc made of telemetry is
-worse than a single, because the sameness compounds across the week.
+1. **Cut sentences.** Keep exactly four jobs: the world and the stake, the surprise, the evidence
+   that settled it, the landing. A sentence doing none of those goes, however true or hard-won. A
+   second interesting fact is not a bonus; it is what makes the post too long.
+2. **Cut words.** "blocked by one checklist item: a mobile layout bug marked verified, where
+   content on phones under 390 pixels wide got clipped off screen" says one thing in twenty-eight
+   words. Say it in ten. Prefer the shorter word, drop every qualifier that survives deletion,
+   never restate in the landing what the evidence already showed.
 
-**A reader who cannot follow it gets nothing, however true it is.** Write for someone meeting each
-post cold in a feed, with no idea what the project is. That means:
+Crisp is not clipped. Full sentences, plain words, nothing ornamental.
 
-- no internal shorthand — commit names, PR numbers, ticket ids, branch names, phase or step labels,
-  or a symbol from the codebase — unless the post explains itself without them;
-- name the thing in ordinary words. A reader does not know what the identifier refers to and will
-  not look it up;
-- density is not compression. One idea carried all the way through beats three ideas stacked into
-  280 characters. If a sentence needs a sentence you did not write, the post is too compressed.
+### Law 1 — no noun the reader has not met
 
-## Step 3 — the pre-draft gate
+A reader arrives cold. They have never seen this project, do not know what it does, and will not
+look anything up. **Every project-specific noun must be introduced in plain words the first time
+it appears, in the same sentence.** Real rejections:
 
-Apply it to every seed individually, and skip the ones that fail it:
+- "A mobile clipping bug blocked my invites." — *what are invites?*
+- "Three runs on my iPhone." — *three runs of what?*
+- "The agent was talking. Status line still said warming up." — *what agent, talking about what?*
 
-1. **Reader gate** — does the post address one of the target reader's dreams, challenges or fears?
-2. **Pillar gate** — does it sit inside one of the content pillars?
-3. **Provenance gate** — is every number, tense and causal claim traceable to that seed's `text`?
-4. **Confidentiality gate** — client, family or private-infrastructure content? When in doubt, skip.
-5. **Register gate** — default register only.
-6. **Guide gate** — every rule in section B, AI/agentic layer taking precedence where it applies.
-7. **Shape gate** — one idea at full density, ≤280 characters, flat takeaway close.
-8. **Stranger gate** — hand the body to a reader who knows nothing about this project and has read
-   nothing else, not even the other arc members. Do they follow it on one pass, and is there
-   something in it for them? If not, skip that seed with `gate:thin` rather than trimming a word
-   out of it.
+The fix is not to delete the noun. It is to say what it is: "the links I send strangers so they
+can try the thing", "a voice agent that talks through an idea with you". One clause each.
 
-## The binding arc rule
+Banned unless the post explains itself without them: commit names, PR numbers, branch names,
+phase or step labels, file names, code symbols, internal jargon.
 
-**Every member must pass the bookmark test standing completely alone.** Readers meet posts cold in
-the feed, one at a time, with no memory of the others. The arc is connective tissue for the rare
-reader who clicks through to the profile — it is never a dependency.
+### Law 2 — land it
 
-Concretely, this means each body:
+The post must end on something the reader can carry away and use — not a summary of what
+happened, but what it *means*. Drafts have failed by stopping at the evidence ("2030 ms cold,
+333 ms warm") and then nothing. The measurement is the setup, not the ending.
+
+The landing must follow from what the post just showed, be true beyond this one project, and be
+said in **ordinary language**. It does not have to be clever. The one sentence the operator
+stumbled on in an otherwise-approved draft was its most clever. A plain honest limit — what this
+does *not* prove — is a good landing.
+
+### Law 3 — one story
+
+A session record often holds two or three separate stories. **Pick one and drop the rest.** A
+post that moves to a second, unrelated finding loses the reader at the seam, even when both
+findings are good.
+
+### Law 4 — open in a moment, not with a definition
+
+Open with yourself doing something, and let the thing get explained inside that sentence. Keep it
+to short simple sentences — not one compound sentence carrying a clause, a colon and a nested
+definition.
+
+- Works: "I was getting ready to invite strangers to try a voice agent I built…"
+- Fails: "A voice agent talks through an idea with anyone who opens the link to try it."
+
+Both introduce the product; only the first gives the reader a person and a situation. A
+definition as the first sentence reads as a brochure and gets skipped.
+
+### The binding arc rule
+
+**Every member must pass standing completely alone.** Readers meet posts cold in the feed, one at
+a time, with no memory of the others. The arc is connective tissue for the rare reader who clicks
+through to the profile — never a dependency. Concretely, each body:
 
 - opens without referring to a previous post ("as I mentioned", "part 2", "continuing from
   yesterday", "in my last post" — all banned);
-- restates whatever context it needs, in its own words, in its own character budget;
-- lands its own takeaway and would be worth bookmarking if it were the only one ever published.
+- restates whatever context it needs, in its own words, inside its own budget. **Law 1 applies per
+  post**: a noun introduced in Monday's post is still unmet on Thursday;
+- lands its own takeaway (Law 2) and would be worth reading if it were the only one published.
 
-An arc member that reads as incomplete on its own is a failed draft, not a partial one. Skip it.
+An arc member that reads as incomplete alone is a failed draft, not a partial one. Skip it.
 
 Order the arc so the sequence rewards a profile visitor — but choose the order by what makes each
-post land, never by forcing a narrative that the seeds do not support. Three unrelated posts are a
-correct outcome; say so by returning them with `arc_note` omitted rather than inventing a thread.
+post land, never by forcing a narrative the seeds do not support. Three unrelated posts are a
+correct outcome; say so by omitting `arc_note` rather than inventing a thread.
+
+## Step 3 — the gate
+
+Apply to every seed individually, and skip the ones that fail:
+
+1. **Reader** · 2. **Pillar** · 3. **Provenance** — every number, quote, tense and causal claim
+traceable to that seed's `text` · 4. **Confidentiality** — when in doubt, skip · 5. **Register** —
+section A §4 · 6. **Shape** — 400–650 characters, three or four paragraphs, never one block ·
+7. **Stranger** — hand it to a builder who knows nothing about this project and has read none of
+the other arc members. Do they follow it on one pass, and is there something in it for them?
+
+## Banned constructions
+
+- **"X is the easy part. Y is not."** Overused; do not use it in any form.
+- Opening on a completed action ("I renamed X", "Shipped Y", "Built and smoked Z").
+- Process telemetry as the subject — how many reviews ran, tests passed, commits landed.
 
 ## Output — draft
 
@@ -90,7 +123,7 @@ correct outcome; say so by returning them with `arc_note` omitted rather than in
     {
       "seed_key": "the seed_key of the seed this post came from",
       "pillar": "P1",
-      "body": "the finished post body, verbatim",
+      "body": "the finished post body, verbatim, paragraphs separated by a BLANK LINE (\\n\\n)",
       "corpus_tags": {
         "tone_register": "...",
         "hook_structure": "...",
@@ -107,8 +140,8 @@ correct outcome; say so by returning them with `arc_note` omitted rather than in
 ```
 
 `posts` is in publication order. Every `seed_key` must be one from section E, each used at most
-once. Put every seed you did not draft into `skipped` with a reason — a seed that appears in
-neither list is treated as an error, not as a silent skip.
+once. Put every seed you did not draft into `skipped` with a reason — a seed appearing in neither
+list is treated as an error, not a silent skip.
 
 ## Output — skip everything
 
@@ -120,5 +153,4 @@ neither list is treated as an error, not as a silent skip.
 `gate:confidentiality`, `gate:register`, `gate:guide`, `gate:shape`, `gate:thin`.
 
 Use `gate:thin` when no record carries a moment worth a stranger's attention, or when the only
-posts available would be telemetry. Returning nothing is a normal outcome and a much better one
-than a padded arc.
+posts available would be telemetry. Returning nothing is normal and much better than a padded arc.

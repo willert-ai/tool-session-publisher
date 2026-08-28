@@ -42,18 +42,27 @@ Do not emit a `length` tag; it is computed from the body.
 A draft failing any of these is discarded without being shown to anyone. These are enforced by
 code, not by judgement:
 
-1. **Body length ≤ 280 characters** — counted as characters, not tokens or words.
-2. **Every digit sequence in the body must appear as a digit sequence in its seed's source
+1. **Body length 400–650 characters, hard ceiling 700** — counted as characters, not tokens or
+   words. Under 400 there is no room to introduce the world and the post reads as abstract; over
+   ~700 it goes unread. Both failures are measured, not guessed.
+2. **Three or four short paragraphs, blank line between. Never one block.** Two drafts of the
+   same story at 634 and 635 characters were judged separately: the paragraphed one passed, the
+   single block was rejected without being read. Shape is judged before content.
+3. **Every digit sequence in the body must appear as a digit sequence in its seed's source
    material.** If the seed does not carry a number, the draft carries no number. Do not compute,
    round, convert or infer a figure — "roughly a third" from "12 of 40" is a fabrication.
-3. **No emoji, no hashtags, no URLs, no exclamation marks.**
-4. **No first-person plural** — no "we", "we're", "we've", "our", "ours".
-5. **No reader-directed questions.** A question containing "you" or "your" is banned. A question
-   quoted to oneself is the operator's signature device and is welcome.
-6. **No secrets or private infrastructure** — absolute filesystem paths, `op://` references,
+4. **No emoji, no hashtags, no URLs, no exclamation marks.**
+5. **No first-person plural** — no "we", "we're", "we've", "our", "ours".
+6. **Reader-directed questions: opening line only.** A question addressed to the reader is
+   permitted as the FIRST sentence of the body, and only if the post then answers it. Anywhere
+   else it is banned. The distinction is bait versus framing: "What's your biggest struggle?"
+   asks something the writer never answers and exists to farm replies; "When a bug reproduces on
+   the branch without your changes, what has that actually ruled out?" is answered by the next
+   four sentences. A question quoted to oneself remains welcome anywhere.
+7. **No secrets or private infrastructure** — absolute filesystem paths, `op://` references,
    private hostnames or IP addresses, email addresses, private repository names, third-party or
    family names.
-7. **No stock-LLM phrasing** — "game-changer", "here's the thing", "let that sink in",
+8. **No stock-LLM phrasing** — "game-changer", "here's the thing", "let that sink in",
    "it's not just X, it's Y", "delve", "excited to", "proud to", "thrilled".
 
 ## E. Seeds

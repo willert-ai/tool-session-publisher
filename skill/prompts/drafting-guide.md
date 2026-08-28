@@ -8,13 +8,13 @@
 
 ## What you are producing
 
-A single tweet (≤280 characters) grounded in today's real session work. This is a **terminal log of shipped work**, not a marketing update. Every post exists to build a trust moat, not to chase followers. The audience: technical peers and potential paying customers — people who build or buy software. One idea per post. One post per session.
+A single post (400–650 characters, three or four short paragraphs) grounded in today's real session work. **Amended 2026-08-28:** this was ≤280 characters for v1. Eleven consecutive operator rejections established that the short form cannot carry both halves of a postable draft — at 280 a body either introduces the world with no room to land, or lands and leaves the reader asking what the nouns were. This is a **terminal log of shipped work**, not a marketing update. Every post exists to build a trust moat, not to chase followers. The audience: technical peers and potential paying customers — people who build or buy software. One idea per post. One post per session.
 
 ---
 
 ## Layer 1 — General Builder Rules (1–16)
 
-1. **Start with proof of work.** The first sentence must contain a concrete result, a technical decision, or a specific obstacle cleared — from the actual session. No "I've been thinking about..." No rhetorical questions — **with exactly one exception: a question quoted to yourself.** "I stopped and asked: 'do I really need this?'" reports a real moment of judgment; it is a decision artifact, not a rhetorical device. Every reader-directed question stays banned — that is engagement bait under another name (rule 11).
+1. **Start with proof of work.** The first sentence must contain a concrete result, a technical decision, or a specific obstacle cleared — from the actual session. No "I've been thinking about..." No rhetorical questions — **with exactly one exception: a question quoted to yourself.** "I stopped and asked: 'do I really need this?'" reports a real moment of judgment; it is a decision artifact, not a rhetorical device. **Amended 2026-08-28:** a reader-directed question is permitted as the post's OPENING LINE, and only if the post then answers it. Anywhere else it stays banned. The distinction is bait versus framing: bait asks something the writer never answers, to farm replies; a framing question that the next 500 characters answer is the opposite move (rule 11 still governs the bait case).
 
 2. **Include at least one number — and never invent one.** Milliseconds, dollars, lines of code, hours, percentages, dates. Numbers are the only currency that cannot be faked, which is precisely why faking one is the most expensive mistake in this guide. Every number must be traceable to the artifact the post is about. **If the work produced no number, the post carries no number** — write the mechanism instead. A missing number costs a little credibility; an invented one costs all of it.
 

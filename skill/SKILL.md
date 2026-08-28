@@ -1,12 +1,12 @@
 ---
 name: session-publisher
 version: "2.0.0"
-description: This skill should be used when the user says "/session-publisher", asks to "review the X queue", "draft a post", "publish today's session", "turn this session into a post", or "post about today". Primary path — the ambient x-comms-engine drafts finished ≤280-character post bodies into a queue at $NOTES_DIR/posts/x/queue/ with no Claude session open, and the operator reviews that queue one entry at a time. Fallback path — a manual seven-stage interactive conversation that reads the past-7-days narrative thread, recommends a topic grounded in today's session work, drafts with a researched best-practice guide, iterates until approval, and saves to $NOTES_DIR/posts/x/. Does NOT publish directly — the operator pastes an approved body into their X scheduler.
+description: This skill should be used when the user says "/session-publisher", asks to "review the X queue", "draft a post", "publish today's session", "turn this session into a post", or "post about today". Primary path — the ambient x-comms-engine drafts finished 400–650-character post bodies into a queue at $NOTES_DIR/posts/x/queue/ with no Claude session open, and the operator reviews that queue one entry at a time. Fallback path — a manual seven-stage interactive conversation that reads the past-7-days narrative thread, recommends a topic grounded in today's session work, drafts with a researched best-practice guide, iterates until approval, and saves to $NOTES_DIR/posts/x/. Does NOT publish directly — the operator pastes an approved body into their X scheduler.
 ---
 
 # Session Publisher
 
-Two paths to the same output — a reviewed ≤280-character post body the operator
+Two paths to the same output — a reviewed 400–650-character post body the operator
 pastes into their X scheduler. The skill never publishes directly.
 
 **Primary path — ambient queue (x-comms-engine v1).** A scheduled local agent
@@ -235,7 +235,7 @@ Read `~/.claude/skills/session-publisher/prompts/drafting-guide.md` in full.
 Apply Layer 2 rules (17–24 + AI anti-patterns) when the approved angle is
 about LLM tools, agents, or automation. Otherwise apply Layer 1.
 
-Produce a single tweet **≤ 280 characters**, grounded in concrete session
+Produce a single post of **400–650 characters in three or four short paragraphs**, grounded in concrete session
 work (proof of work, at least one number, one idea only, "I" not "we",
 no engagement bait, no hashtags by default).
 
@@ -253,7 +253,7 @@ Accepted operator instructions (loop until `approve` or `skip`):
 - `skip` → discard, do not save
 - operator pastes their own rewrite → accept verbatim as final
 
-After every edit, re-check the 280-character ceiling and the drafting
+After every edit, re-check the 400–650-character band, the paragraph shape, and the drafting
 guide's 24 rules. If a rule is broken, fix it before presenting.
 
 ### Stage 5.5 — Style-applied variants (conditional)
@@ -295,7 +295,9 @@ The corpus is private context, not operator-facing content. Read the
 1. **Infer the approved draft's 7 tags.** Six axes are model judgment:
    `tone_register`, `hook_structure`, `sentence_rhythm`, `topic_ownership`,
    `constraint_disclosure`, `topic_area`. The seventh — `length` — is
-   deterministic: `shortform` if `len(body) ≤ 280` else `longform`.
+   deterministic: `shortform` if `len(body) ≤ 280` else `longform`. Note this is the CORPUS
+   vocabulary boundary, not the engine's 700-char ceiling — they were the same number until
+   2026-08-28 and most posts are now `longform`.
 2. **Vocabulary** is fixed in `prompts/examples-template.md`. Hook
    structures map 1:1 to `drafting-guide.md` Layer-2 hook templates 6–10
    when the topic_area is `ai-tooling` / `ai-research` /
@@ -325,7 +327,7 @@ approved draft. Preserve:
 - The core idea and angle (from Stage 3).
 - All concrete numbers, named technologies, and constraint disclosures
   from the original draft.
-- The 280-character ceiling if the original was `shortform`.
+- The 400–650-character band and the paragraph shape.
 - All 24 rules from `drafting-guide.md`. If exemplar register conflicts
   with a rule, **the rule wins.**
 
@@ -337,7 +339,7 @@ Adjust toward the exemplar:
 - Tone register (clinical-peer vs. dry-wit vs. reflective-solo vs.
   provocateur).
 
-If a rewrite cannot honor both the exemplar register and the 280-char
+If a rewrite cannot honor both the exemplar register and the 400–650-char
 ceiling, discard that variant. If both variants get discarded, treat as
 "zero clear matches" — skip Stage 5.5 silently.
 
@@ -440,7 +442,7 @@ End of skill invocation.
 
 ## Anti-checks (run before completing)
 
-- Body ≤ 280 chars
+- Body 400–650 chars, three or four paragraphs, never one block
 - One idea only
 - No engagement bait, no hashtags (unless intentionally one)
 - File written to `$NOTES_DIR/posts/x/`, NOT to the repo
@@ -489,10 +491,10 @@ the `Bash` tool. Each emits JSON on stdout.
   posts).
 - **`helpers/save.py`** — Stage 6. Writes the approved draft as
   `$NOTES_DIR/posts/x/YYYY-MM-DD_post-NNN.md` with frontmatter. Enforces
-  the 280-character ceiling.
+  the 400–650-character band.
 - **`helpers/queue.py`** — the ambient queue contract and the review
   surface, not part of the seven-stage path. `add` writes a drafted entry
-  (anti-leak gate, 280-character ceiling, schema + ledger); `--validate`
+  (anti-leak gate, 700-character ceiling, schema + ledger); `--validate`
   checks the queue; `expire` archives aged or over-capacity entries;
   `list` prints the actionable queue as JSON; `review` is the operator's
   interactive one-action loop; `approve` / `kill` / `copy` are the same

@@ -11,7 +11,7 @@ The queue lives OUTSIDE this repo, under the operator's notes directory:
 
 Subcommands implemented here:
 
-    add         anti-leak gate + <=280 gate + schema write + `drafted` ledger line
+    add         anti-leak gate + length gate + schema write + `drafted` ledger line
     --validate  exit 0 on an empty or fully valid queue, 1 otherwise
     expire      queued entries older than 14 days, or over the capacity of 10,
                 move to .archive/ and append an `expired` ledger line
@@ -136,7 +136,14 @@ ARCHIVE_NAME = ".archive"
 ENTRY_GLOB = "q_*.md"
 ENTRY_ID = re.compile(r"^q_\d{4}-\d{2}-\d{2}_\d{6}$")
 
-MAX_BODY_CHARS = 280
+# Raised from 280 on 2026-08-28 after 11 consecutive operator rejections. The
+# short form could not carry both halves of a postable draft at once: at 280 a
+# body either introduced the world and had no room to land, or landed and left
+# the reader asking "what are the invites?", "three runs of what?". Measured
+# band from a 33-draft calibration: below ~400 reads as abstract, above ~700
+# goes unread. The cap is the outer edge of that, not the target — §4.1 of the
+# persona holds the target and the paragraph-shape rule the operator judges first.
+MAX_BODY_CHARS = 700
 DEFAULT_CAPACITY = 10
 DEFAULT_MAX_AGE_DAYS = 14
 
@@ -717,8 +724,9 @@ def edit_distance(before: str, after: str) -> int:
 
     D11's quality signal, measured against `body_drafted` (F10) — the engine's
     original, frozen at add time — rather than against whatever the body happened
-    to be a moment ago. Bodies are capped at 280 characters, so the quadratic
-    table is at most 280x280 and the two-row form is plenty.
+    to be a moment ago. Bodies are capped at MAX_BODY_CHARS, so the quadratic
+    table is at most that squared (490k cells at the 2026-08-28 ceiling of 700,
+    ~0.2 s worst case) and the two-row form is plenty.
     """
     if before == after:
         return 0
@@ -1073,7 +1081,7 @@ def check_publishable(body: str) -> None:
         raise QueueError("input:empty_body", "body is empty")
     if len(body) > MAX_BODY_CHARS:
         raise QueueError(
-            "len:over_280", f"body is {len(body)} chars, over the {MAX_BODY_CHARS} limit"
+            "len:over_max", f"body is {len(body)} chars, over the {MAX_BODY_CHARS} limit"
         )
     leak = scan_for_leaks(body)
     if leak:
@@ -1144,7 +1152,7 @@ def cmd_add(args) -> int:
         raise QueueError("input:empty_body", "body is empty")
     if len(body) > MAX_BODY_CHARS:
         raise QueueError(
-            "len:over_280", f"body is {len(body)} chars, over the {MAX_BODY_CHARS} limit"
+            "len:over_max", f"body is {len(body)} chars, over the {MAX_BODY_CHARS} limit"
         )
 
     seed_ref = args.seed_ref.strip()
@@ -1721,7 +1729,7 @@ def render_card(queue_dir: Path, fields: dict, body: str, position: str, now: da
     days = days_in_queue(fields, now)
     age = "age unknown" if days is None else f"{days}d in queue"
     # Counted from the body being shown, not from the stored field: after an edit
-    # the two differ, and on a 280-character surface that is the one number that
+    # the two differ, and on a length-capped surface that is the one number that
     # must never be stale.
     lines = [
         RULE,
