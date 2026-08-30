@@ -84,7 +84,7 @@ The skill runs through seven stages:
 1. **Context primer** — pulls past 7 days of posts + candidate sessions
 2. **Narrative-thread recap** — shows the running thread + reaction recap
 3. **Topic recommendation** — proposes one topic + two alternatives
-4. **Drafting** — produces a single tweet ≤280 chars
+4. **Drafting** — produces a single post of 400–650 chars in three or four short paragraphs
 5. **Interactive review** — operator iterates (`rewrite hook`, `tighten`, etc.)
 6. **Save** — writes `$NOTES_DIR/posts/x/YYYY-MM-DD_post-NNN.md`
 7. **Handoff** — prints the body for paste into your X scheduler

@@ -40,7 +40,13 @@ NOTES_BASE = Path(
 )
 POSTS_X_DIR = NOTES_BASE / "posts" / "x"
 TZ = ZoneInfo(os.environ.get("SESSION_PUBLISHER_TZ", "UTC"))
-MAX_POST_LEN = 280  # SPEC §6.k
+# Raised from 280 on 2026-08-28 with the register change. This is the manual
+# seven-stage path's save gate; it must track queue.py's MAX_BODY_CHARS or the
+# fallback path rejects every draft the primary path now produces. It did
+# exactly that for one commit: SKILL.md was updated to claim this enforced the
+# 400-650 band while the constant still said 280, so an operator finishing the
+# interactive flow would have lost an approved body at the last step.
+MAX_POST_LEN = 700  # SPEC §6.k, amended 2026-08-28
 
 
 def next_post_number(day: date) -> int:
@@ -81,7 +87,7 @@ def main() -> int:
         "--body",
         type=str,
         default=None,
-        help="Post body as a string (≤280 chars)",
+        help="Post body as a string (≤MAX_POST_LEN chars)",
     )
     parser.add_argument(
         "--body-file",
@@ -104,7 +110,7 @@ def main() -> int:
     parser.add_argument(
         "--allow-overlength",
         action="store_true",
-        help="Skip the 280-character check (use only when intentional)",
+        help="Skip the length check (use only when intentional)",
     )
     args = parser.parse_args()
 
@@ -136,7 +142,7 @@ def main() -> int:
         print(
             json.dumps(
                 {
-                    "error": "post exceeds 280 chars",
+                    "error": f"post exceeds {MAX_POST_LEN} chars",
                     "length": len(body),
                     "max": MAX_POST_LEN,
                     "hint": "rewrite or pass --allow-overlength",

@@ -9,7 +9,7 @@ never to a silent pass.
 Pipeline per tick:
 
     seeds (JSON) -> prompt assembly -> `claude -p` -> parse -> deterministic gates
-                 -> queue.py add (D6 anti-leak, <=280, schema write, ledger)
+                 -> queue.py add (D6 anti-leak, length, schema write, ledger)
 
 Two modes:
 
@@ -74,6 +74,11 @@ PERSONA = PROMPTS_DIR / "persona.local.md"
 GUIDE = PROMPTS_DIR / "drafting-guide.md"
 INSIGHTS = PROMPTS_DIR / "insights.local.md"  # D14 — included iff it exists
 
+# The corpus vocabulary's shortform/longform boundary (examples-template.md).
+# Deliberately separate from queue.MAX_BODY_CHARS: one describes the post, the
+# other constrains the engine, and they only looked like one number by accident.
+CORPUS_SHORTFORM_CHARS = 280
+
 DEFAULT_TIMEOUT = 300
 DEFAULT_MAX_DRAFTS = {"single": 2, "arc": 3}
 DEFAULT_CAPACITY = 10
@@ -114,7 +119,7 @@ _QUEUE_MODULE = None
 def queue_module():
     """Load (once) and return the sibling queue module.
 
-    Everything the queue contract defines — sources, pillars, the 280 ceiling, the leak
+    Everything the queue contract defines — sources, pillars, the body ceiling, the leak
     shapes, the tag vocabulary loader — is read from here rather than restated, so this
     file cannot drift into a second, silently divergent copy of the contract.
     """
@@ -188,17 +193,62 @@ def normalise_apostrophes(text: str) -> str:
 
 
 def reader_directed_question(body: str) -> bool:
-    """A question aimed at the reader. Questions quoted to oneself are the signature.
+    """A question aimed at the reader, anywhere except the opening line.
 
     Split on sentence ends, not on `?` alone: splitting only at question marks glues
     every preceding sentence onto the interrogative one, so a "you" anywhere earlier in
     the body condemns a question that was never aimed at the reader. That would discard
     exactly the quoted-question-to-self the voice profile calls the signature device.
+
+    The FIRST sentence is exempt (2026-08-28). The rule exists to stop engagement bait —
+    a question the writer never answers, posted to farm replies — and it could not tell
+    that from a framing question the piece then answers. The operator's own hand-written
+    exemplar opens with one, and this gate rejected it outright. Position is the cheapest
+    honest proxy available here: an opener is answered by what follows it or the post
+    fails the reader on its own; a question in the last line is asking the reader to
+    supply the answer, which is the bait shape. Everywhere but sentence one, the ban
+    stands unchanged.
     """
-    for sentence in re.split(r"(?<=[.!?])\s+", body):
+    stripped = body.strip()
+    # Exempt sentence 0 only when it is genuinely a first LINE that ends. Two ways
+    # the naive split widens the hole: an opening line with no terminator ("Three
+    # days of a green checkmark") makes sentence 0 run across the blank line and
+    # swallow paragraph two's first sentence, which is then exempt; and Law 4 asks
+    # for short simple openers, so a terminator-less headline is a likely output,
+    # not a contrived one. Confine the exemption to the first paragraph and require
+    # it to actually close.
+    first_para, _, rest = stripped.partition("\n\n")
+    para_sentences = re.split(r"(?<=[.!?])\s+", first_para)
+    opener_exempt = bool(para_sentences) and para_sentences[0].rstrip().endswith((".", "!", "?"))
+    tail = (para_sentences[1:] if opener_exempt else para_sentences) + (
+        re.split(r"(?<=[.!?])\s+", rest) if rest else []
+    )
+    for sentence in tail:
         if "?" in sentence and re.search(r"\byou\b|\byour\b|\byourself\b", sentence, re.IGNORECASE):
             return True
     return False
+
+
+# Blank-line-separated runs. A body is judged on its shape before it is read: two
+# calibration drafts of one story at 634 and 635 characters were verdicted apart
+# purely on this, the paragraphed one accepted and the single block rejected
+# unread ("too massive"). So it is a gate, not a style note. The ceiling is loose
+# on purpose — five short paragraphs is a rhythm choice, one 600-character wall
+# is the failure being caught.
+MIN_PARAGRAPHS = 2
+MAX_PARAGRAPHS = 6
+PARAGRAPH_BLOCK_CHARS = 400
+
+
+def paragraph_shape_failure(body: str) -> str | None:
+    paragraphs = [p for p in re.split(r"\n\s*\n", body.strip()) if p.strip()]
+    if len(paragraphs) > MAX_PARAGRAPHS:
+        return "gate:shape:too_many_paragraphs"
+    # Only a LONG body needs breaking up; a genuinely short post is allowed to be
+    # one paragraph, which is what it would be on the page anyway.
+    if len(body.strip()) >= PARAGRAPH_BLOCK_CHARS and len(paragraphs) < MIN_PARAGRAPHS:
+        return "gate:shape:single_block"
+    return None
 
 
 # Digits bound into a product or version name are identity, not measurement. The guide
@@ -234,7 +284,7 @@ def anti_voice_failures(body: str) -> str | None:
         return "gate:anti_voice:reader_question"
     if body.count("—") > 2:
         return "gate:anti_voice:em_dash_run"
-    return None
+    return paragraph_shape_failure(body)
 
 
 # --- seeds ------------------------------------------------------------------
@@ -510,7 +560,7 @@ def validate_draft(post: dict, seed: dict, queue_mod, vocab: dict) -> tuple[dict
     body = body.strip("\n")
 
     if len(body) > queue_mod.MAX_BODY_CHARS:
-        return None, "len:over_280"
+        return None, "len:over_max"
 
     pillar = str(post.get("pillar", "")).strip()
     if pillar not in queue_mod.PILLARS:
@@ -533,8 +583,13 @@ def validate_draft(post: dict, seed: dict, queue_mod, vocab: dict) -> tuple[dict
         elif value not in vocab.get(axis, ()):
             return None, f"schema:tag_enum:{axis}"
         tags[axis] = value
-    # Derived, never asked for: the 280 gate above already settled it.
-    tags["length"] = "shortform"
+    # Derived, never asked for. The boundary is the corpus vocabulary's own
+    # (`examples-template.md`: shortform ≤280, longform >280), NOT the engine's
+    # body ceiling — those were the same number until 2026-08-28 and are not any
+    # more. Hardcoding `shortform` was correct only while the ceiling was 280;
+    # left alone it would have stamped every long-form body with the wrong tag
+    # and quietly poisoned the register evidence the corpus exists to hold.
+    tags["length"] = "shortform" if len(body) <= CORPUS_SHORTFORM_CHARS else "longform"
 
     reason = anti_voice_failures(body)
     if reason:
