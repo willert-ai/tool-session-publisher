@@ -1,9 +1,26 @@
 <!-- Project context for any AI agent. NOT agent persona — see role prompts -->
+<!-- EDIT TARGET: AGENTS.md — CLAUDE.md is a symlink to this file. The harness refuses Edit/Write on CLAUDE.md; go to AGENTS.md directly. -->
 # AGENTS.md — session-publisher
 
 ## Project context
 
 An ambient drafting system for X, packaged as a Claude Code skill. A scheduled local agent mines the operator's own session history, drafts finished 400–650-character post bodies through a headless `claude -p` with no session open, and files them in a review queue; the operator's only obligation is one action per entry. A seven-stage interactive conversation remains as the manual fallback path. Everything is written under the operator's configured notes directory (`$SESSION_PUBLISHER_NOTES_DIR`, default `~/personal-notes`), never in this repo. The system never publishes directly — the operator pastes an approved body into their X scheduler of choice (or x.com directly).
+
+## North Star
+<!-- Contract: the heading '## North Star' is consumed by the github-ops retrofit audit + (future) fab-spec repo-research — keep it verbatim. This is DURABLE-INTENT (Vision + scope/PRD pointers): human-owned, rarely changes, NOT working-state — /wrap-up never edits it. WHERE the vision/scope docs live is project-dependent: a separate strategy home if one exists (point OUT to it), in-repo only for a self-contained product. An honest "none yet" beats a stale vision doc. See github-ops OPERATIONS.md § "Repo Doc Model". -->
+- **Vision** (ideal end-state): a running narration of who you are and what you do — surfaced
+  from the real work, made visible on its own and at no effort.
+- **Scope / PRD** (what the current release — v1/beta — IS): the *how* that vision implies —
+  the operator's own session history mined unattended, drafted headlessly into finished
+  400–650-character bodies against a researched best-practice guide (24 rules, 12 hook
+  templates) and a register calibrated from operator-verdicted drafts, then filed into a
+  review queue held outside this repo, so the only human act is one verdict per entry. A
+  seven-stage interactive conversation survives as the manual path. Nothing is ever published
+  by the system — an approved body is pasted into the operator's own X scheduler.
+  Authoritative design: `planning/SPEC-x-comms-engine.md` rev 2 — **local and gitignored**,
+  absent from the public clone; `planning/SPEC.md` v0.3 is the superseded pull model, valid
+  only where the two agree. Public surface and what is out of scope: `README.md` § Scope.
+- **Current state**: this file, § Project context
 
 ## Stack & key dependencies
 
@@ -89,6 +106,26 @@ Three discipline rules tie these to action:
 ### Clarity discipline
 
 - **Clarity beats token optimization.** Vague prompts force exploratory work that costs more tokens than the optimization saves. Invest tokens in the spec / brainstorm; save tokens during execution by working from a sharp plan.
+
+### Folder discipline
+- **Where a new document goes — decide before creating it.** External material you did not
+  write (research outputs, transcripts, third-party reports) → `research/`, read-only. Your
+  own durable design, vision, playbook or audit → `strategy/`. Working state, specs, boots and
+  kickoffs → `planning/` (`planning/specs/`, `planning/handoffs/`). User-facing guides →
+  `docs/`; how-to-run-it → `OPERATIONS*.md` at root. Create the folder when the first file
+  needs it, never before.
+- **Before creating any other top-level folder or `planning/` subfolder, look at the normative
+  taxonomy:** `~/tools/github-ops/templates/README.md` § Folder taxonomy. Conceptual folders
+  are `planning/` `strategy/` `research/` `docs/` `scripts/` `tests/` `hooks/` `assets/`
+  `archive/`, and inside planning `handoffs/` `specs/`. Use those names exactly — no case,
+  plural or synonym variants (`HANDOFFS/`, `plans/`, `_archive/`).
+- **A new kind of conceptual folder is added to the taxonomy first, then used here.** The
+  project's own code and data folders (a package dir, `web/`, `data/`, `supabase/`) are yours
+  to name; conceptual folders are not. Root holds only the allowed files (README, AGENTS,
+  CLAUDE, LICENSE, `OPERATIONS*.md`, ecosystem files) — everything else lives in a folder.
+- `~/tools/github-ops/scripts/repo-compliance.sh .` reports variants, stray root files and
+  the rest of the doc model; the session-start hook prints its result at the top of every
+  session, so a gap is never a surprise at audit time.
 
 ## Build & run
 
@@ -336,7 +373,8 @@ modules. Both filenames are fixed by contract — don't rename, work around:
 - ❌ Anything requiring infrastructure outside Claude Code (GitHub Actions, servers, databases — rejected by SPEC v0 and still rejected). **Narrowed for the x-comms-engine chain:** a local launchd user agent is the one exception, and only because the ambient trigger is the whole point of v1; hosted always-on services stay out.
 
 ## References
+- **Repo conventions (normative):** `~/tools/github-ops/OPERATIONS.md` § Repo Doc Model · `~/tools/github-ops/templates/README.md` § Folder taxonomy · check: `~/tools/github-ops/scripts/repo-compliance.sh`
 
-- **Authoritative design:** `planning/SPEC.md`
+- **Authoritative design:** `planning/SPEC-x-comms-engine.md` rev 2 (local, gitignored) · superseded v0 pull model: `planning/SPEC.md`
 - **Pre-mortem:** `planning/PreMortem-session-publisher-2026-05-11.md`
 - **Drafting guide:** `skill/prompts/drafting-guide.md` (24 rules + 12 hook templates)
