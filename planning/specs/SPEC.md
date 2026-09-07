@@ -1,7 +1,7 @@
 # SPEC — session-publisher (skill, manual-paste gateway, v0.3)
 
 **Locked:** 2026-05-11 (revision 3 — supersedes v0.2 in-place)
-**Status:** Pre-mortem complete — awaiting operator sign-off
+**Status:** Shipped 2026-05-12 as v0.1.0 (`1f939b1`). Superseded as authoritative design by `planning/specs/SPEC-x-comms-engine.md` rev 2 (local, gitignored) — this document is valid only where the two agree. *(Status line corrected 2026-09-07; design content unchanged.)*
 **Hard ship:** Wednesday May 13, 2026 — end of day
 **Build budget:** Monday afternoon (drafting-guide research, ~45 min) + Tuesday morning 09:00–13:00 (build) + Wednesday morning (test + ship)
 **Predecessor:** `PRD_cron-architecture-superseded-2026-05-11.md` (cron architecture, abandoned)
@@ -415,4 +415,4 @@ Stage 3 reads `Running_Week_YYYY-WNN.md` to extract Groundhog + Double Down refl
 
 ---
 
-*SPEC v0.3 authored Monday May 11, 2026, by Claude (Opus 4.7) at operator's direction. Pre-mortem complete; awaiting operator sign-off before any code is written. Predecessor: `PRD_cron-architecture-superseded-2026-05-11.md`. Prior revisions of this SPEC (v0.1 = skill with X application programming interface posting; v0.2 = manual-paste gateway with mandatory reaction recap) replaced in place; preserved in git history.*
+*SPEC v0.3 authored Monday May 11, 2026, by Claude (Opus 4.7) at operator's direction. Pre-mortem was complete and operator sign-off pending at time of authoring — see the Status line above for what actually happened. Predecessor: `PRD_cron-architecture-superseded-2026-05-11.md`. Prior revisions of this SPEC (v0.1 = skill with X application programming interface posting; v0.2 = manual-paste gateway with mandatory reaction recap) replaced in place; preserved in git history.*
