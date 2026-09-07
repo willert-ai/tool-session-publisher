@@ -524,5 +524,5 @@ root for discovery. The deviation is project-local convention.
 
 ## References (external)
 
-- SPEC: `planning/SPEC.md`
-- Pre-mortem: `planning/PreMortem-session-publisher-2026-05-11.md`
+- SPEC: `planning/specs/SPEC.md`
+- Pre-mortem: `strategy/PreMortem-session-publisher-2026-05-11.md`

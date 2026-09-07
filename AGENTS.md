@@ -17,8 +17,8 @@ An ambient drafting system for X, packaged as a Claude Code skill. A scheduled l
   review queue held outside this repo, so the only human act is one verdict per entry. A
   seven-stage interactive conversation survives as the manual path. Nothing is ever published
   by the system — an approved body is pasted into the operator's own X scheduler.
-  Authoritative design: `planning/SPEC-x-comms-engine.md` rev 2 — **local and gitignored**,
-  absent from the public clone; `planning/SPEC.md` v0.3 is the superseded pull model, valid
+  Authoritative design: `planning/specs/SPEC-x-comms-engine.md` rev 2 — **local and gitignored**,
+  absent from the public clone; `planning/specs/SPEC.md` v0.3 is the superseded pull model, valid
   only where the two agree. Public surface and what is out of scope: `README.md` § Scope.
 - **Current state**: this file, § Project context
 
@@ -35,7 +35,7 @@ An ambient drafting system for X, packaged as a Claude Code skill. A scheduled l
 
 - **Repository audit — 2026-09-07:** [strategy/REPOSITORY_AUDIT.md](strategy/REPOSITORY_AUDIT.md) is a proposed complete delivery route, independently reviewed and refuted (all findings resolved). Prepared on `codex/feat-repository-audit-session-publisher`; the owner subsequently authorized committing, pushing, merging the documentation and cleaning merged branches. Runtime code and services unchanged. Current read-only snapshot: 10 queued, 13 killed, 1 expired, 1 approved-and-copied after substantial editing; ambient publication remains unconfirmed. The first approved corpus addition is in an ignored checkout file while the intended synced copy is stale; no repair performed. The reminder has now fired, with six logged dialog failures and two deferrals. These observations supersede the August acceptance/reminder/corpus-location assertions below. Implementation, private-state reconciliation and installation require their own authority; the usefulness gate remains open.
 
-- **Authoritative design:** `planning/SPEC-x-comms-engine.md` rev 2 (local, gitignored) — the ambient system. `planning/SPEC.md` describes the superseded v0 pull model and survives only where the two do not disagree.
+- **Authoritative design:** `planning/specs/SPEC-x-comms-engine.md` rev 2 (local, gitignored) — the ambient system. `planning/specs/SPEC.md` describes the superseded v0 pull model and survives only where the two do not disagree.
 - **Skill shipped and installed** (`ln -s <repo>/skill ~/.claude/skills/session-publisher`, 2026-08-25). `skill/` carries `SKILL.md`, seven stdlib-only helpers (`select`, `save`, `thread`, `mirror`, `queue`, `draft`, `mine`), `engine/` (the ambient tick `run.sh` + the headless prompt scaffold), and `prompts/`.
 *The following milestone is the 2026-08-30 implementation snapshot; current audit observations above supersede its working-state claims.*
 
@@ -47,10 +47,10 @@ An ambient drafting system for X, packaged as a Claude Code skill. A scheduled l
 
   **Open, not blocked:** the Sunday deep tick timed out on 2026-08-30 (`engine:timeout`, three seeds lost in one call) — the first deep tick ever run, so arc mode has never completed a real model call. Problem statement in `planning/handoffs/TRANSITION_deep-tick-timeout_2026-08-30.md`; deliberately no fix proposed, and the first move is instrumentation, since nothing records how long a call takes. Also still unexercised: smoke item 3 (approve → corpus append → copy), because no draft has ever been approved; and the corpus loop does not reach the ambient prompt, so approvals would not compound yet.
 
-  Authoritative design: the local, gitignored `planning/SPEC-x-comms-engine.md` rev 2, amended at D9 and superseded on length/register by §4 of the persona. Per-commit history lives in `planning/progress.md` + `planning/findings.md` and the commit messages — **not here**.
-- **Pre-mortem:** `planning/PreMortem-session-publisher-2026-05-11.md` documents 4 Tigers + 3 Elephants identified before the build window and how each was resolved.
+  Authoritative design: the local, gitignored `planning/specs/SPEC-x-comms-engine.md` rev 2, amended at D9 and superseded on length/register by §4 of the persona. Per-commit history lives in `planning/progress.md` + `planning/findings.md` and the commit messages — **not here**.
+- **Pre-mortem:** `strategy/PreMortem-session-publisher-2026-05-11.md` documents 4 Tigers + 3 Elephants identified before the build window and how each was resolved.
 - **Stage 5.5 corpus-mirror (feature thread):** Phase C shipped 2026-05-16. `skill/helpers/mirror.py` is a pure-loader helper (parses `examples.local.md`, drops `near_duplicate_of` cluster non-reps, emits JSON). `SKILL.md` carries the new Stage 5.5 section (load → infer+select → rewrite → prompt → response). `examples-template.md` documents `guide_compliance` + `near_duplicate_of`. **Pivot:** SPEC v0.2 §4 deterministic tag-overlap pipeline superseded — Claude does semantic selection in Stage 5.5 prose. Rationale annotated inline in the SPEC + in `planning/findings.md`. Next: first end-to-end run with new stage will calibrate register-fit honesty. Authoritative design: SPEC v0.2 (annotated) + SKILL.md §5.5 (shipped behavior).
-- **Drafting guide v1.3 shipped 2026-05-18** based on `xai-org/x-algorithm` (Jan 2026) signal analysis. Added Layer 1 rule 16 (link placement — link in first reply, not body, to avoid 30–90% reach loss) and new "Post-publish protocol" section (author-reply within 1h + posting-window timing). Layer 2 renumbered 17–24 (was 16–23); 9 corpus notes updated. SKILL.md Stage 7 now includes `author_replied: yes/no` tracking. Delta artifact: `planning/DELTA_algo-vs-drafting-guide-2026-05-18.md`. Edits E4 (H5 tone caveat) and E5 (rule 5 density) deferred.
+- **Drafting guide v1.3 shipped 2026-05-18** based on `xai-org/x-algorithm` (Jan 2026) signal analysis. Added Layer 1 rule 16 (link placement — link in first reply, not body, to avoid 30–90% reach loss) and new "Post-publish protocol" section (author-reply within 1h + posting-window timing). Layer 2 renumbered 17–24 (was 16–23); 9 corpus notes updated. SKILL.md Stage 7 now includes `author_replied: yes/no` tracking. Delta artifact: `strategy/DELTA_algo-vs-drafting-guide-2026-05-18.md`. Edits E4 (H5 tone caveat) and E5 (rule 5 density) deferred.
 
 ## Operating principles (deterministic — apply on every session)
 
@@ -381,6 +381,6 @@ modules. Both filenames are fixed by contract — don't rename, work around:
 ## References
 - **Repo conventions (normative):** `~/tools/github-ops/OPERATIONS.md` § Repo Doc Model · `~/tools/github-ops/templates/README.md` § Folder taxonomy · check: `~/tools/github-ops/scripts/repo-compliance.sh`
 
-- **Authoritative design:** `planning/SPEC-x-comms-engine.md` rev 2 (local, gitignored) · superseded v0 pull model: `planning/SPEC.md`
-- **Pre-mortem:** `planning/PreMortem-session-publisher-2026-05-11.md`
+- **Authoritative design:** `planning/specs/SPEC-x-comms-engine.md` rev 2 (local, gitignored) · superseded v0 pull model: `planning/specs/SPEC.md`
+- **Pre-mortem:** `strategy/PreMortem-session-publisher-2026-05-11.md`
 - **Drafting guide:** `skill/prompts/drafting-guide.md` (24 rules + 12 hook templates)

@@ -4,7 +4,7 @@
 **Run date:** 2026-05-11
 **SPEC version:** v0.3
 
-*Full findings also appended as §11 of `SPEC.md`. This file is the standalone reference.*
+*Full findings also appended as §11 of `planning/specs/SPEC.md`. This file is the standalone reference.*
 
 ---
 

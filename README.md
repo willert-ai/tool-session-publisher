@@ -127,7 +127,9 @@ session-publisher/
 │   │   └── *.md                    # the assembled headless drafting prompt
 │   └── prompts/
 │       └── drafting-guide.md       # researched X-posting best practice
-└── planning/                       # SPEC + pre-mortem
+├── planning/
+│   └── specs/                      # SPEC v0.3 + corpus-mirror spec
+└── strategy/                       # pre-mortem, algorithm delta, repo audit
 ```
 
 ---
@@ -177,7 +179,7 @@ researched drafting guide, save to `$NOTES_DIR`, paste hand-off.
 
 **Out of v0:** X application programming interface (read or write),
 threads / images / multi-platform, mobile review, engagement-metric
-scraping, auto-trigger from `daily-routine`. See `planning/SPEC.md` §7
+scraping, auto-trigger from `daily-routine`. See `planning/specs/SPEC.md` §7
 for the full list.
 
 ---
@@ -189,8 +191,8 @@ is a symlink to it. Both auto-load for Claude Code.
 
 Key design documents:
 
-- `planning/SPEC.md`
-- `planning/PreMortem-session-publisher-2026-05-11.md`
+- `planning/specs/SPEC.md`
+- `strategy/PreMortem-session-publisher-2026-05-11.md`
 - `skill/prompts/drafting-guide.md` — 24 rules, 12 hook templates,
   AI/agentic Layer 2 overrides
 
