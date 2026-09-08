@@ -120,11 +120,18 @@ Three discipline rules tie these to action:
   kickoffs → `planning/` (`planning/specs/`, `planning/handoffs/`). User-facing guides →
   `docs/`; how-to-run-it → `OPERATIONS*.md` at root. Create the folder when the first file
   needs it, never before.
+- **`planning/` root holds exactly the working-state trio** (`task_plan.md`, `progress.md`,
+  `findings.md`), with `handoffs/` and `specs/` as its canonical subfolders. The deciding
+  test is structural: is this file rewritten as a matter of course at the close of an ordinary
+  working session? Yes → the trio. No → `strategy/` (durable intent, human-owned) or another
+  folder above. `scripts/repo-compliance.sh` check 16 flags any **file** at the planning root
+  besides those three (advisory — a warning, not a failure). It does not flag subfolders;
+  `planning/` subfolder names are check 14's job.
 - **Before creating any other top-level folder or `planning/` subfolder, look at the normative
   taxonomy:** `~/tools/github-ops/templates/README.md` § Folder taxonomy. Conceptual folders
   are `planning/` `strategy/` `research/` `docs/` `scripts/` `tests/` `hooks/` `assets/`
-  `archive/`, and inside planning `handoffs/` `specs/`. Use those names exactly — no case,
-  plural or synonym variants (`HANDOFFS/`, `plans/`, `_archive/`).
+  `archive/` `templates/` `src/`, and inside planning `handoffs/` `specs/`. Use those names
+  exactly — no case, plural or synonym variants (`HANDOFFS/`, `plans/`, `_archive/`).
 - **A new kind of conceptual folder is added to the taxonomy first, then used here.** The
   project's own code and data folders (a package dir, `web/`, `data/`, `supabase/`) are yours
   to name; conceptual folders are not. Root holds only the allowed files (README, AGENTS,
@@ -379,7 +386,7 @@ modules. Both filenames are fixed by contract — don't rename, work around:
 - ❌ Anything requiring infrastructure outside Claude Code (GitHub Actions, servers, databases — rejected by SPEC v0 and still rejected). **Narrowed for the x-comms-engine chain:** a local launchd user agent is the one exception, and only because the ambient trigger is the whole point of v1; hosted always-on services stay out.
 
 ## References
-- **Repo conventions (normative):** `~/tools/github-ops/OPERATIONS.md` § Repo Doc Model · `~/tools/github-ops/templates/README.md` § Folder taxonomy · check: `~/tools/github-ops/scripts/repo-compliance.sh`
+- **Repo conventions (normative):** `~/tools/github-ops/templates/README.md` § Folder taxonomy · check: `~/tools/github-ops/scripts/repo-compliance.sh`
 
 - **Authoritative design:** `planning/specs/SPEC-x-comms-engine.md` rev 2 (local, gitignored) · superseded v0 pull model: `planning/specs/SPEC.md`
 - **Pre-mortem:** `strategy/PreMortem-session-publisher-2026-05-11.md`
