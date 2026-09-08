@@ -531,7 +531,7 @@ def match_repo(session: dict, repo_index: dict[str, Path]) -> Path | None:
     `voice-discovery` or `x-comms-engine` are the identifier, and splitting
     them on `-` (as a generic word-tokenizer would) turns "voice-discovery"
     into "voice" + "discovery" — "voice" alone then substring-matches
-    unrelated repos like `voice-capture-rag`, silently attributing another
+    unrelated repos like `voice-notes`, silently attributing another
     project's commits to this session. Whole-tag equality only."""
     if not repo_index:
         return None

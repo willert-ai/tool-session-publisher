@@ -234,7 +234,7 @@ modules. Both filenames are fixed by contract — don't rename, work around:
   forced run is a coin flip, not a regression. Raising throughput means retrying into the next seed
   after a gate skip: a `draft.py` change, not a `run.sh` one.
 - **`mine.py`'s repo matching is exact-slug-only, on purpose.** Tokenizing a tag like
-  `voice-discovery` into `voice` + `discovery` lets `voice` substring-match `voice-capture-rag` and
+  `voice-discovery` into `voice` + `discovery` lets `voice` substring-match `voice-notes` and
   silently attribute one project's commits to another. Whole-tag equality against dirnames, never
   substring containment. `by_name` and `by_alias` stay separate dicts for the same reason: a
   prefix-stripped alias collision must null only the ambiguous *alias*, never an exact match.
