@@ -124,9 +124,9 @@ Three discipline rules tie these to action:
   `findings.md`), with `handoffs/` and `specs/` as its canonical subfolders. The deciding
   test is structural: is this file rewritten as a matter of course at the close of an ordinary
   working session? Yes → the trio. No → `strategy/` (durable intent, human-owned) or another
-  folder above. `scripts/repo-compliance.sh` check 16 flags any **file** at the planning root
-  besides those three (advisory — a warning, not a failure). It does not flag subfolders;
-  `planning/` subfolder names are check 14's job.
+  folder above. `~/tools/github-ops/scripts/repo-compliance.sh` check 16 flags any **file**
+  at the planning root besides those three (advisory — a warning, not a failure). It does not
+  flag subfolders; `planning/` subfolder names are check 14's job.
 - **Before creating any other top-level folder or `planning/` subfolder, look at the normative
   taxonomy:** `~/tools/github-ops/templates/README.md` § Folder taxonomy. Conceptual folders
   are `planning/` `strategy/` `research/` `docs/` `scripts/` `tests/` `hooks/` `assets/`
