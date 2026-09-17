@@ -7,6 +7,10 @@
 
 An ambient drafting system for X, packaged as a Claude Code skill. A scheduled local agent mines the operator's own session history, drafts finished 400–650-character post bodies through a headless `claude -p` with no session open, and files them in a review queue; the operator's only obligation is one action per entry. A seven-stage interactive conversation remains as the manual fallback path. Everything is written under the operator's configured notes directory (`$SESSION_PUBLISHER_NOTES_DIR`, default `~/personal-notes`), never in this repo. The system never publishes directly — the operator pastes an approved body into their X scheduler of choice (or x.com directly).
 
+<!-- fab:state-begin -->
+As of the 2026-09-07 audit (strategy/REPOSITORY_AUDIT.md): drafts 10 queued, 13 killed, 1 expired, 1 approved-and-copied; ambient publication unconfirmed; usefulness gate open. That day the owner found drafts better-written but too technical, detached and insufficiently personal. Next, per that audit: implementation, private-state reconciliation and installation, each needing its own authority.
+<!-- fab:state-end -->
+
 ## North Star
 <!-- Contract: the heading '## North Star' is consumed by the github-ops retrofit audit + (future) fab-spec repo-research — keep it verbatim. This is DURABLE-INTENT (Vision + scope/PRD pointers): human-owned, rarely changes, NOT working-state — /wrap-up never edits it. WHERE the vision/scope docs live is project-dependent: a separate strategy home if one exists (point OUT to it), in-repo only for a self-contained product. An honest "none yet" beats a stale vision doc. See github-ops OPERATIONS.md § "Repo Doc Model". -->
 - **Vision** (ideal end-state): a running narration of who you are and what you do — surfaced
