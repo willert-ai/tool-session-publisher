@@ -12,7 +12,7 @@ As of the 2026-09-07 audit (strategy/REPOSITORY_AUDIT.md): drafts 10 queued, 13 
 <!-- fab:state-end -->
 
 ## North Star
-<!-- Contract: the heading '## North Star' is consumed by the github-ops retrofit audit + (future) fab-spec repo-research — keep it verbatim. This is DURABLE-INTENT (Vision + scope/PRD pointers): human-owned, rarely changes, NOT working-state — /wrap-up never edits it. WHERE the vision/scope docs live is project-dependent: a separate strategy home if one exists (point OUT to it), in-repo only for a self-contained product. An honest "none yet" beats a stale vision doc. See github-ops OPERATIONS.md § "Repo Doc Model". -->
+<!-- Contract: the heading '## North Star' is consumed by the github-ops retrofit audit + (future) fab-spec repo-research — keep it verbatim. This is DURABLE-INTENT (Vision + scope/PRD pointers): human-owned, rarely changes, NOT working-state — no agent's session-close step rewrites it — the session-close procedure (`~/.config/agent-rules/procedures/session-close.md`) never edits it, whichever agent runs it. WHERE the vision/scope docs live is project-dependent: a separate strategy home if one exists (point OUT to it), in-repo only for a self-contained product. An honest "none yet" beats a stale vision doc. See github-ops `templates/README.md` § Repo doc model. -->
 - **Vision** (ideal end-state): a running narration of who you are and what you do — surfaced
   from the real work, made visible on its own and at no effort.
 - **Scope / PRD** (what the current release — v1/beta — IS): the *how* that vision implies —
