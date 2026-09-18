@@ -75,14 +75,28 @@ Smoke tests:
     python3 mine.py --days 3 --today 2026-08-25
 
 `--index` and `--queue-dir` isolate SESSION_INDEX and the ledger for testing.
-Session-document lookup follows `--index` (documents live beside the index, so
-its parent directory is the notes root), but posts/ dedup always reads the real
-$NOTES_DIR/posts/x/ — there is no separate override for it, and those two
-therefore diverge under a bare `--index`. A fully isolated test run needs
-SESSION_PUBLISHER_NOTES_DIR pointed at a scratch dir too:
+Session-document lookup follows `--index` (documents live in `sessions/` beside
+the index, so its parent directory is the notes root), but posts/ dedup always
+reads the real $NOTES_DIR/posts/x/ — there is no separate override for it, and
+those two therefore diverge under a bare `--index`. A fully isolated test run
+needs SESSION_PUBLISHER_NOTES_DIR pointed at a scratch dir too:
 
     SESSION_PUBLISHER_NOTES_DIR=/tmp/notes \\
         python3 mine.py --days 14 --index /tmp/SESSION_INDEX.md --queue-dir /tmp/q
+
+The `sessions/` case (W3, LD-W3-11 — the lookup is `notes_base / "sessions"`
+only; a document at the notes root is no longer found): a two-row index dated
+on consecutive days D1 = D2 - 1, D1's document at the scratch root, D2's under
+the scratch `sessions/`, an empty scratch `posts/x/`, then
+
+    SESSION_PUBLISHER_NOTES_DIR=$TMPDIR/notes \\
+        python3 mine.py --index $TMPDIR/notes/SESSION_INDEX.md --today D2 --days 1 \\
+        --queue-dir $TMPDIR/notes/q
+
+prints the D2 seed with "has_document": true and the D1 seed with false. Each
+document needs at least one `#` heading and a slug that covers its row's
+title: `has_document` is `bool(narrative)`, so a heading-less document
+resolves but still reports false.
 """
 
 from __future__ import annotations
@@ -129,9 +143,9 @@ ROW_PATTERN = re.compile(r"^\| \d{4}-\d{2}-\d{2} \|")
 
 # --- session-document resolution + narrative extraction ---------------------
 
-# Session documents live flat in the notes root as
-# "YYYY-MM-DD - SESSION_<verb-slug>.md". The slug is NOT a deterministic
-# transform of the index title — the wrap-up skill invents a shortened,
+# Session documents live in <notes>/sessions/ (since W3; before it, flat in
+# the notes root) as "YYYY-MM-DD - SESSION_<verb-slug>.md". The slug is NOT a
+# deterministic transform of the index title — the wrap-up skill invents a shortened,
 # verb-led one, and it drops, reorders and truncates words freely:
 #   "Closed RUNBOOK § 8, disproved the 390px defect, and turned off LiveKit
 #    observability"            -> closed-runbook-8-and-disabled-livekit-observability
@@ -238,7 +252,11 @@ def find_session_doc(session: dict, notes_base: Path) -> Path | None:
     attributed, and None (degrade to the row) beats a coin flip.
     """
     try:
-        candidates = sorted(notes_base.glob(f"{session['date']} *{SESSION_DOC_MARKER}*.md"))
+        # `sessions/` only — the root lookup was replaced, not widened (W3,
+        # LD-W3-11): a document left at the notes root is not found.
+        candidates = sorted(
+            (notes_base / "sessions").glob(f"{session['date']} *{SESSION_DOC_MARKER}*.md")
+        )
     except OSError:
         return None
     if not candidates:
@@ -685,9 +703,9 @@ def run(args) -> int:
 
     repo_index = build_repo_index(os.environ.get("X_COMMS_REPO_DIRS"))
 
-    # Session documents live beside SESSION_INDEX.md, so a `--index` override
-    # relocates document lookup with it — which is what makes a fully isolated
-    # scratch run possible without a second flag.
+    # Session documents live in `sessions/` beside SESSION_INDEX.md, so a
+    # `--index` override relocates document lookup with it — which is what
+    # makes a fully isolated scratch run possible without a second flag.
     notes_base = index_path.parent
 
     report = {

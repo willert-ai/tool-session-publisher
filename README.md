@@ -58,7 +58,8 @@ The symlink must resolve to the project's `skill/` directory.
   `~/personal-notes`). It will receive `posts/x/YYYY-MM-DD_post-NNN.md`
   drafts.
 - A `SESSION_INDEX.md` ledger inside that notes directory, plus daily
-  `YYYY-MM-DD - SESSION_<title>.md` session files. The skill was built
+  `YYYY-MM-DD - SESSION_<title>.md` session files in its `sessions/`
+  folder. The skill was built
   around the author's session-archive infrastructure — see
   [`skill/SKILL.md`](skill/SKILL.md) pre-conditions for the exact schema
   and two paths to adapt the skill if you don't already keep an

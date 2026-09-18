@@ -80,7 +80,7 @@ operator's voice.
 This skill was built around a specific session-archive infrastructure
 the author maintains. To use it as-is, you need:
 
-1. **Daily session files.** Markdown files in `$NOTES_DIR/` named
+1. **Daily session files.** Markdown files in `$NOTES_DIR/sessions/` named
    `YYYY-MM-DD - SESSION_<title>.md` (one per Claude Code session you
    want eligible for posting). The author generates these via a
    companion `wrap-up` skill, but you can produce them by any means —
@@ -177,7 +177,7 @@ Never fail on missing annotations. Reaction recap is value-add when present.
 ### Stage 3 — Topic recommendation
 
 Read the body of today's session wrap-up file (look up its full path under
-`$NOTES_DIR/` based on the date + title from the SESSION_INDEX row).
+`$NOTES_DIR/sessions/` based on the date + title from the SESSION_INDEX row).
 
 **Optional enrichment — recent reflections.** If you keep a recurring
 reflections file (weekly review, end-of-day journal, retrospective notes),
