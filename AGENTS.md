@@ -37,7 +37,7 @@ As of the 2026-09-07 audit (`strategy/REPOSITORY_AUDIT.md`): 10 drafts queued, 1
 ## Working state
 
 - **Repository audit — 2026-09-07:** [strategy/REPOSITORY_AUDIT.md](strategy/REPOSITORY_AUDIT.md) is a proposed complete delivery route, independently reviewed and refuted (all findings resolved).
-- **Task plan, findings, progress:** local and gitignored (`.gitignore:39–41`; § Working-state discipline). Dated working state from here moved on 2026-09-23 to the Mac Studio clone's `planning/progress.md`; the engine overview, smoke tests and gotchas moved to `docs/ambient-engine.md`.
+- **Task plan, findings, progress:** local and gitignored (`.gitignore:39–41`; § Where this repository's working state lives). Dated working state from here moved on 2026-09-23 to the Mac Studio clone's `planning/progress.md`; the engine overview, smoke tests and gotchas moved to `docs/ambient-engine.md`.
 
 ## Operating principles (deterministic — apply on every session)
 
@@ -60,47 +60,51 @@ As of the 2026-09-07 audit (`strategy/REPOSITORY_AUDIT.md`): 10 drafts queued, 1
   - Propose external research (web docs, examples) for fresh perspective
   - Escalate to user with: what failed, what's been tried, what new angle is proposed
 
+<!-- fab:working-state-begin -->
 ### Working-state discipline
 
-Four locations carry the project's working state.
-Two writers keep them current at the close of a session, and both cite the template's block (github-ops `templates/AGENTS-template.md` § Working-state discipline), which this one adapts, rather than restate it: the session-close procedure (`~/.config/agent-rules/procedures/session-close.md`) is the attended implementation, run by whichever agent holds the session, and `session-factory/contracts/wrapup-executor.md` is the factory's, rendered from the Linear trail at chain close.
-Update discipline:
+Four locations carry the project's working state. Two writers keep them current at the close of a
+session, and both cite this block rather than restate it: the session-close procedure
+(`~/.config/agent-rules/procedures/session-close.md`) is the attended implementation, run by
+whichever agent holds the session, and `session-factory/contracts/wrapup-executor.md` is the
+factory's, rendered from the Linear trail at chain close. Update discipline:
 
 | File | Content | Cadence |
 |------|---------|---------|
-| `AGENTS.md` § Project context | SHORT current-state snapshot: the strategic frame above the `fab:state` markers, ONE paragraph of current state between them. REPLACE the marked state paragraph in place — never append per-session narrative; history → `progress.md` | Same session as the state change (not deferred to next session). The size guard (`hooks/check_context_size.py`, run by the pre-commit hook wherever `hooks/` is armed with both files) enforces the ceilings — the writer rule and the guard are one policy seen from two sides. |
-| `planning/task_plan.md` | Phase state machine — current phase, history, gates, decisions | At every phase boundary |
-| `planning/progress.md` | Chronological session log (most recent on top) | End of every session — no exceptions |
-| `planning/findings.md` | Session-level reframes, pivots, gotchas, re-evaluation list | Mid-session via 2-Action Rule + end-of-session catch-up |
-
-Note: the three `planning/*.md` files are gitignored in this public repo. They exist locally and the discipline applies the same way.
-Each clone keeps its own copies: the Mac Studio's and the MacBook's are separate, unsynced files that git does not carry (`.gitignore:39–41`). This repository keeps `progress.md` newest-first, not the template's newest-last.
+| `AGENTS.md` § Project context | SHORT current-state snapshot: the strategic frame above the `fab:state` markers, ONE paragraph of current state between them. REPLACE the marked state paragraph in place — never append per-session narrative; history → `progress.md` | Same session as the state change (not deferred to next session). The size guard (`hooks/check_context_size.py`, from github-ops `templates/hooks/`, run by the pre-commit hook wherever `hooks/` is armed with both files) enforces the ceilings — the writer rule and the guard are one policy seen from two sides. |
+| `planning/task_plan.md` | The plan's state — the current phase or stream, its gates, history and decisions | When a phase or stream opens, ships or blocks |
+| `planning/progress.md` | Chronological session log — append new entries at the bottom (newest last, never at the top) | End of every session that wrote in this repository — no exceptions |
+| `planning/findings.md` | Session-level reframes, pivots, gotchas, re-evaluation list — append at the bottom (newest last, never at the top) | Mid-session via 2-Action Rule + end-of-session catch-up |
 
 Three discipline rules tie these to action:
 
 - **2-Action Rule:** after every 2 search/read operations, write findings to
-  `planning/findings.md`. Honor system, reinforced by PostToolUse hook nudge.
-- **Phase boundary checkpoints:** before any major phase transition, update
-  `task_plan.md` to mark phase complete and declare execution context for the
-  next phase (D16: model + thinking effort + role + context per phase).
-- **Session-end catch-up:** at every session end (via `/wrap-up` or manual
-  close), append to `progress.md` AND `findings.md`. The `/wrap-up` skill
-  writes the operator's session-log SESSION document; these project-local
-  files are the same log scoped to this project. If a session shipped no
-  project content (meta-work only), still append a one-line entry noting
-  that — silence creates currency doubt.
+  `planning/findings.md`. Honor system — no hook enforces it.
+- **Plan checkpoints:** when a phase or stream opens, ships or blocks, update
+  `task_plan.md` to record it and declare the execution context for what comes
+  next (model, thinking effort, role and context).
+- **Session-end catch-up:** a close that wrote inside this repository (via the
+  agent's session-close step — Claude Code's is `/wrap-up` — or manually)
+  appends to `progress.md`, and to `findings.md` when there are findings. The
+  same step writes the session record under `FERO-Log/sessions/`; these
+  project-local files are the same log scoped to this project. A session that
+  wrote nothing here ends in its session record alone.
 
 #### Who writes at close
 
 | Close | Writer | What it writes | When |
 |-------|--------|----------------|------|
-| Attended close | any runtime running the session-close procedure (`~/.config/agent-rules/procedures/session-close.md`) | the session record under `FERO-Log/sessions/`, and the four locations above — of which it can commit only `AGENTS.md` here | at the end of a work session — proposed by the agent at a natural end, or invoked by the operator, a boot's exit block or a skill's last step |
-| Factory chain close | `session-factory/contracts/wrapup-executor.md` | the four locations above, rendered from the Linear trail, and a header-only session record — of which it can commit only `AGENTS.md` here; the trio is not in its worktree and is never force-added (`.gitignore:39–41`) | once per chain, when the factory closes it |
+| Attended close | any runtime running the session-close procedure (`~/.config/agent-rules/procedures/session-close.md`) | the session record under `FERO-Log/sessions/`, and — when the session wrote in this repository — the four locations above, each at its cadence | at the end of a work session — proposed by the agent at a natural end, or invoked by the operator, a boot's exit block or a skill's last step |
+| Factory chain close | `session-factory/contracts/wrapup-executor.md` | the four locations above, rendered from the Linear trail, and a header-only session record | once per chain, when the factory closes it |
 
-In this repository the delivery block's example `set --` line must name `AGENTS.md` alone: with the ignored trio on disk, `git add -- planning/progress.md planning/findings.md AGENTS.md` exits 1 (it stages `AGENTS.md` and refuses the two ignored paths), and the block then skips the commit (measured 2026-09-23 in a scratch clone).
 The frame outside the `fab:state` markers is never touched by the factory, and by an attended close only when the operator asks in that session.
-The close commits on the session's branch; a ruled `main` or a runtime account means a branch and a pull request.
+The close commits on the session's branch; a ruled branch (or rules that cannot be read) or a runtime account means a close branch and a pull request.
 How each writer edits — markers, size bounds, commit and push — lives in the writer, not here.
+<!-- fab:working-state-end -->
+
+### Where this repository's working state lives
+
+The three `planning/*.md` files are gitignored in this public repository (`.gitignore:39–41`). They exist locally and the discipline above applies to them the same way, but each clone keeps its own copies: the Mac Studio's and the MacBook's are separate, unsynced files that git does not carry. So a close, attended or factory, commits `AGENTS.md` alone: the session-close delivery block drops each ignored `planning/*.md` path with a printed line (`…: ignored in this repository — not committed`) and commits the rest, and the factory's worktree has no trio and never force-adds one.
 
 ### Security boundaries
 
