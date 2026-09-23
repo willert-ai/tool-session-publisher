@@ -3,7 +3,7 @@
 # AGENTS.md — session-publisher
 
 ## Project context
-<!-- STATE-ONLY guardrail: this section is a SHORT current-state snapshot, not a log. Keep the strategic frame (what the project is, who it serves) above the fab:state markers and ONE paragraph of current state between them; REPLACE that paragraph in place at every session close — never append dated entries or per-session narrative anywhere in this section. Session history → planning/progress.md; durable conventions and measured facts → § Conventions & gotchas; known gaps → § Out of scope. Enforced by hooks/check_context_size.py (from github-ops templates/hooks/) through the pre-commit hook wherever hooks/ is armed with both files: this section stays ≤ 6,000 bytes; the marked paragraph stays ≤ 3,500 characters, exactly one paragraph, and grows ≤ 800 characters per commit. -->
+<!-- STATE-ONLY guardrail: this section is a SHORT current-state snapshot, not a log. Keep the strategic frame (what the project is, who it serves) above the fab:state markers and ONE paragraph of current state between them; REPLACE that paragraph in place at every session close — never append dated entries or per-session narrative anywhere in this section. Session history → planning/progress.md; durable conventions and measured facts → § Conventions & gotchas; known gaps → § Out of scope. Enforced by hooks/check_context_size.py (from github-ops templates/hooks/) through the pre-commit hook wherever hooks/ is armed with both files: this section stays ≤ 6,000 bytes; the marked paragraph stays ≤ 3,500 characters, exactly one paragraph, and grows ≤ 800 characters per ordinary commit (merges skip only growth); and the whole file stays under 32,768 bytes. -->
 
 An ambient drafting system for X, packaged as a Claude Code skill. A scheduled local agent mines the operator's own session history, drafts finished 400–650-character post bodies through a headless `claude -p` with no session open, and files them in a review queue; the operator's only obligation is one action per entry. A seven-stage interactive conversation remains as the manual fallback path. Everything is written under the operator's configured notes directory (`$SESSION_PUBLISHER_NOTES_DIR`, default `~/personal-notes`), never in this repo. The system never publishes directly — the operator pastes an approved body into their X scheduler of choice (or x.com directly).
 
@@ -118,6 +118,7 @@ Three discipline rules tie these to action:
 
 - **Clarity beats token optimization.** Vague prompts force exploratory work that costs more tokens than the optimization saves. Invest tokens in the spec / brainstorm; save tokens during execution by working from a sharp plan.
 
+<!-- fab:folder-discipline-begin -->
 ### Folder discipline
 - **Where a new document goes — decide before creating it.** External material you did not
   write (research outputs, transcripts, third-party reports) → `research/`, read-only. Your
@@ -144,6 +145,7 @@ Three discipline rules tie these to action:
 - `~/tools/github-ops/scripts/repo-compliance.sh .` reports variants, stray root files and
   the rest of the doc model; the session-start hook prints its result at the top of every
   session, so a gap is never a surprise at audit time.
+<!-- fab:folder-discipline-end -->
 
 ## Build & run
 
