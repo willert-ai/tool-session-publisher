@@ -1,0 +1,241 @@
+#!/usr/bin/env bash
+# Portable pre-commit guard — github-ops ships this into every new repo so the
+# repo guards itself the moment it is cloned ANYWHERE (a collaborator, CI, a
+# non-fleet box), not only on machines that carry a fleet-wide global hook.
+#
+# TWO LAYERS, IN THIS ORDER
+#   1. the AGENTS.md § Project context size guard — measures the section with
+#      check_context_size.py (shipped beside this file) and blocks a commit
+#      that would push it past its bounds. It runs first so the cheaper, more
+#      specific check reports before the whole-diff scan; the layers are
+#      independent, and the order only decides which message you see when both
+#      would block.
+#   2. the gitleaks secret guard — blocks a commit whose staged changes carry
+#      a secret.
+#
+# ACTIVATE ONCE PER CLONE — copy BOTH files, then point git at the directory:
+#     cp <github-ops>/templates/hooks/pre-commit            hooks/
+#     cp <github-ops>/templates/hooks/check_context_size.py hooks/
+#     chmod +x hooks/pre-commit
+#     git config core.hooksPath hooks
+#
+# Requires: gitleaks on PATH (brew install gitleaks). python3 is optional —
+# see THE PYTHON3 SKIP below.
+# Repo-specific layers belong immediately before the final exit 0, between:
+#     # ── repo-specific layer (kept by the D10 retrofit) — begin ──
+#     # ── repo-specific layer (kept by the D10 retrofit) — end ──
+# This is the supported extension point; any refresh keeps the layer verbatim.
+#
+# Two-layer doctrine: config-management OPERATIONS-SECRETS.md §8. Setting a
+# local core.hooksPath here OVERRIDES the fleet-wide global hook, so each scan
+# runs exactly ONCE — no double-run. On a non-fleet machine (no global hook)
+# this is the ONLY guard, which is the whole point of shipping it.
+#
+# THE SIZE CHECKER'S EXIT CONTRACT (check_context_size.py)
+#     0  ok, or not applicable, WITH an OK: or SKIP: stdout line
+#     3  verdict — the section, marked state region or whole file is the wrong
+#        size or shape, or a boundary HEAD's copy had was destroyed
+#     2  could not run — and any other status is read as could not run too
+#   The verdict is 3 and not 1 because CPython owns 1: a module that fails at
+#   import exits 1 before any of its own error handling runs, so 1 cannot tell
+#   "the section is too big" apart from "this script is broken"
+#   (github-ops strategy/decisions.md ADR-010). Only 3 blocks as a verdict here; every
+#   other non-zero status blocks as could-not-run, with a different message.
+#   Status 0 without an OK: or SKIP: line also blocks as could-not-run (a
+#   zero-byte checker exits 0 without measuring anything).
+#
+# WHEN THE SIZE LAYER DOES NOTHING, SILENTLY AND BY DESIGN
+#   * AGENTS.md is not among the staged changes;
+#   * AGENTS.md is staged as a DELETION or a RENAME-away — it is no longer in
+#     the index, so there is nothing to measure, and blocking a legitimate
+#     removal would leave no way forward (this hook offers no bypass). Any
+#     staged add/copy/modify/rename of a top-level path equal to AGENTS.md
+#     case-insensitively but not exactly is blocked: it must keep its exact name;
+#   * NEITHER the staged file NOR HEAD's copy carries a '## Project context'
+#     heading — the checker reports a skip and exits 0. Losing a heading that
+#     HEAD's copy HAD is a verdict, not a skip: renaming the heading must not
+#     be the way this check quietly stops running.
+#   A passing check is silent: the checker's stdout is captured and checked,
+#   then discarded. Only its verdicts and could-not-run messages reach stderr.
+#
+# WHAT THIS HOOK CANNOT SEE AT ALL
+#   git runs no pre-commit hook for a clean merge, a clean cherry-pick or
+#   revert, or any rebase (and --no-verify skips it). Compliance check 17 at
+#   the next session start re-checks the working tree's absolute limits; it
+#   does not see growth, deleted markers or a lost heading those paths brought
+#   in, because the working tree equals HEAD. The session factory's merge-base
+#   check at closeout supplies its own comparison. A conflicted cherry-pick
+#   or revert finished with --continue DOES run this hook and keeps the growth
+#   bound, as does a squash merge.
+#
+# THE PYTHON3 SKIP — the one place this layer is deliberately fail-OPEN
+#   The layer prints one WARNING: line and lets the commit through in exactly
+#   two cases: `command -v python3` finds nothing at all; or it resolves to
+#   literally /usr/bin/python3 AND `xcode-select` is on PATH AND
+#   `xcode-select -p` fails — Apple's Command Line Tools shim with the tools
+#   not installed, which would pop an install dialog and exit non-zero. Every
+#   other python3 runs the check, a symlink that happens to point at that shim
+#   included: an unrecognised interpreter fails CLOSED, never open.
+#   The reason for the two exceptions: a box with no python cannot run this
+#   layer at all, and this hook promises to work the moment a repo is cloned
+#   anywhere. The accepted cost, stated so nobody is surprised: on such a box
+#   an oversized AGENTS.md commits, and the WARNING line is the only trace. A
+#   checker that DID run and crashed is a defect, not a missing interpreter,
+#   and stays fail-closed. gitleaks is fail-closed as before.
+#
+# NO TEMP FILE, ANYWHERE
+#   HEAD's AGENTS.md reaches the checker as a baseline through process
+#   substitution — <(git show HEAD:AGENTS.md) — never through a temp file: a
+#   bare mktemp fails outright in some sandboxes, and this hook must never be
+#   the reason a commit cannot be made. Separately, the pipeline's two statuses
+#   are taken in ONE array assignment from PIPESTATUS. A second assignment is
+#   itself a pipeline and resets PIPESTATUS before it can be read — under
+#   set -u the second read then aborts the hook outright. A single rc=$? has
+#   the other half of the problem: it collapses both commands into one number
+#   that no longer says which of them produced it, so a git failure would
+#   surface here as a raw signal number (a SIGPIPE'd `git show` is 141)
+#   instead of the normalised could-not-run status this hook reports.
+#   Stdout capture encloses the pipeline AND its immediate PIPESTATUS read;
+#   the subshell returns the routed status before stdout is inspected. An outer
+#   capture retains diagnostics for the whole-file remedy; stderr cannot satisfy
+#   the stdout-only OK:/SKIP: success contract.
+#
+# THE PER-COMMIT GROWTH BOUND, AND WHAT IT IS NOT
+#   The marked state paragraph may grow only so much per commit, measured
+#   against HEAD — which makes it a speed bump, not a wall. HEAD moves with
+#   every `git commit --amend`, so each amend re-baselines: measured, a region
+#   walked from 100 to 3,300 characters through four amends with this hook
+#   silent, while the same change made as ONE commit was blocked. An --amend is
+#   therefore more permissive here, never stricter. The wall is the
+#   3,500-character region ceiling, which is absolute; the stricter consumer is
+#   the session factory's closeout, which measures against the merge-base
+#   rather than HEAD. When a legitimate single rewrite of the paragraph does
+#   trip the bound, the remedy is TWO COMMITS, not a bypass: commit part of the
+#   new paragraph, then the rest.
+#   A merge in progress (the MERGE_HEAD file located by git rev-parse --git-path,
+#   including in a linked worktree) skips ONLY growth: its resolution cannot be
+#   split into two commits. A tag or branch named MERGE_HEAD does not count.
+#   The baseline stays, so destroyed markers/headings still block.
+#   An amend of a merge has no MERGE_HEAD and keeps the growth comparison.
+#
+# Do NOT bypass with --no-verify. If a secret is flagged, fix the staged
+# content; if the key is real, rotate-and-burn it first (generate new, revoke
+# old), then unstage. If the size guard fires, fix the file — or fix the
+# checker if the checker is what is wrong.
+
+set -uo pipefail
+
+check_project_context_size() {
+  while IFS= read -r -d '' staged_path; do
+    if [ "$staged_path" != "AGENTS.md" ]; then
+      echo "pre-commit: BLOCKED — AGENTS.md must keep its exact name" >&2
+      exit 1
+    fi
+  done < <(git diff --cached --name-only --diff-filter=ACMR -z -- ':(top,icase,literal)AGENTS.md')
+
+  if [ -z "$(git diff --cached --name-only -- AGENTS.md)" ]; then
+    return 0
+  fi
+
+  if ! git cat-file -e :AGENTS.md 2>/dev/null; then
+    return 0
+  fi
+
+  python3_path="$(command -v python3)"
+  if [ -z "$python3_path" ]; then
+    echo "WARNING: pre-commit: the § Project context size guard was skipped — no python3 on PATH." >&2
+    return 0
+  fi
+  if [ "$python3_path" = "/usr/bin/python3" ] && command -v xcode-select >/dev/null 2>&1 && ! xcode-select -p >/dev/null 2>&1; then
+    echo "WARNING: pre-commit: the § Project context size guard was skipped — the only python3 is Apple's Command Line Tools shim and the tools are not installed." >&2
+    return 0
+  fi
+
+  size_checker="$(dirname "$0")/check_context_size.py"
+  if [ ! -f "$size_checker" ]; then
+    echo "pre-commit: the § Project context size check could not run — no checker at '$size_checker'." >&2
+    echo "pre-commit: copy it beside this hook:  cp <github-ops>/templates/hooks/check_context_size.py '$(dirname "$0")/'" >&2
+    echo "pre-commit: do NOT bypass with --no-verify; fix the section or fix the checker." >&2
+    exit 1
+  fi
+
+  merge_flag=""
+  if [ -f "$(git rev-parse --git-path MERGE_HEAD)" ]; then
+    merge_flag="--merge"
+  fi
+
+  checker_diagnostics="$(
+    exec 2>&1
+    checker_output="$(
+      if git cat-file -e HEAD:AGENTS.md 2>/dev/null; then
+        git show :AGENTS.md | python3 "$size_checker" --baseline <(git show HEAD:AGENTS.md) $merge_flag -
+        rcs=("${PIPESTATUS[@]}")
+      else
+        git show :AGENTS.md | python3 "$size_checker" -
+        rcs=("${PIPESTATUS[@]}")
+      fi
+      git_rc="${rcs[0]}"
+      rc="${rcs[1]}"
+      if [ "$rc" -ne 3 ] && [ "$git_rc" -ne 0 ]; then
+        rc=2
+      fi
+      exit "$rc"
+    )"
+    rc=$?
+    if [ "$rc" -eq 0 ]; then
+      case "$checker_output" in
+        (OK:*|SKIP:*|*$'\n'OK:*|*$'\n'SKIP:*) ;;
+        (*) rc=2 ;;
+      esac
+    fi
+    if [ "$rc" -ne 0 ] && [ -n "$checker_output" ]; then
+      printf '%s\n' "$checker_output" >&2
+    fi
+    exit "$rc"
+  )"
+  rc=$?
+  if [ -n "$checker_diagnostics" ]; then
+    printf '%s\n' "$checker_diagnostics" >&2
+  fi
+
+  case "$rc" in
+    0)
+      ;;
+    3)
+      case "$checker_diagnostics" in
+        whole-file:*|*$'\n'whole-file:*)
+          echo "pre-commit: BLOCKED — AGENTS.md is at or over the 32,768-byte whole-file bound — move reference material out of the file" >&2
+          ;;
+        *)
+          echo "pre-commit: BLOCKED — AGENTS.md § Project context failed the size guard (the verdict line above names the rule and the measured value)." >&2
+          ;;
+      esac
+      echo "pre-commit: do NOT bypass with --no-verify; fix the file or fix the checker." >&2
+      exit 1
+      ;;
+    *)
+      echo "pre-commit: the § Project context size check could not run (status $rc)." >&2
+      echo "pre-commit: do NOT bypass with --no-verify; fix the section or fix the checker." >&2
+      exit 1
+      ;;
+  esac
+}
+
+check_project_context_size
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks not installed — cannot scan staged changes for secrets." >&2
+  echo "pre-commit: install it first:  brew install gitleaks   (https://github.com/gitleaks/gitleaks)" >&2
+  echo "pre-commit: (fail-closed — the commit is blocked until the scanner is available)" >&2
+  exit 1
+fi
+
+if ! gitleaks git --staged --no-banner --redact --report-format json --report-path /dev/null .; then
+  echo "" >&2
+  echo "pre-commit: gitleaks BLOCKED this commit — a secret was found in staged changes." >&2
+  echo "pre-commit: if the key is real, rotate-and-burn it (generate new, revoke old), then unstage." >&2
+  echo "pre-commit: do NOT bypass with --no-verify. Doctrine: OPERATIONS-SECRETS.md §8." >&2
+  exit 1
+fi
+
+exit 0
