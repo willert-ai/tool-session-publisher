@@ -8,7 +8,7 @@
 An ambient drafting system for X, packaged as a Claude Code skill. A scheduled local agent mines the operator's own session history, drafts finished 400–650-character post bodies through a headless `claude -p` with no session open, and files them in a review queue; the operator's only obligation is one action per entry. A seven-stage interactive conversation remains as the manual fallback path. Everything is written under the operator's configured notes directory (`$SESSION_PUBLISHER_NOTES_DIR`, default `~/personal-notes`), never in this repo. The system never publishes directly — the operator pastes an approved body into their X scheduler of choice (or x.com directly).
 
 <!-- fab:state-begin -->
-As of the 2026-09-07 audit (strategy/REPOSITORY_AUDIT.md): drafts 10 queued, 13 killed, 1 expired, 1 approved-and-copied; ambient publication unconfirmed; usefulness gate open. That day the owner found drafts better-written but too technical, detached and insufficiently personal. Next, per that audit: implementation, private-state reconciliation and installation, each needing its own authority.
+As of the 2026-09-07 audit (`strategy/REPOSITORY_AUDIT.md`): 10 drafts queued, 13 killed, 1 expired and 1 approved-and-copied, that approval the only captured ambient one, so August's no-approval-yet claim is stale (its 13 rejections remain real); ambient publication unconfirmed; the usefulness gate open; the review reminder firing in production, six of its eight scheduled outcomes AppleEvent timeout failures. The owner found drafts better-written but too technical, detached and insufficiently personal. Since the audit one runtime change has landed: the miner finds session documents under `sessions/` only (commit `9053e58`, PR #9, 2026-09-18). Next, per that audit: implementation, private-state reconciliation and installation, each needing its own authority.
 <!-- fab:state-end -->
 
 ## North Star
@@ -36,26 +36,8 @@ As of the 2026-09-07 audit (strategy/REPOSITORY_AUDIT.md): drafts 10 queued, 13 
 
 ## Working state
 
-- **Owner quality feedback — 2026-09-07, after audit:** current drafts have much better shape/wording but still feel too technical and detached; the missing requirement is the operator's personal/business/story perspective. AI-authored wrap-ups foregrounding technical process insights is the owner's plausible source hypothesis, not a verified universal cause. Audit revision 4 prioritizes attributable human meaning before drafting and forbids invented feelings/stakes; fresh independent amendment review and refutation passed with all findings resolved. No runtime or private-state change.
-
-- **Repository audit — 2026-09-07:** [strategy/REPOSITORY_AUDIT.md](strategy/REPOSITORY_AUDIT.md) is a proposed complete delivery route, independently reviewed and refuted (all findings resolved). Prepared on `codex/feat-repository-audit-session-publisher`; the owner subsequently authorized committing, pushing, merging the documentation and cleaning merged branches. Runtime code and services unchanged. Current read-only snapshot: 10 queued, 13 killed, 1 expired, 1 approved-and-copied after substantial editing; ambient publication remains unconfirmed. The first approved corpus addition is in an ignored checkout file while the intended synced copy is stale; no repair performed. The reminder has now fired, with six logged dialog failures and two deferrals. These observations supersede the August acceptance/reminder/corpus-location assertions below. Implementation, private-state reconciliation and installation require their own authority; the usefulness gate remains open.
-
-- **Authoritative design:** `planning/specs/SPEC-x-comms-engine.md` rev 2 (local, gitignored) — the ambient system. `planning/specs/SPEC.md` describes the superseded v0 pull model and survives only where the two do not disagree.
-- **Skill shipped and installed** (`ln -s <repo>/skill ~/.claude/skills/session-publisher`, 2026-08-25). `skill/` carries `SKILL.md`, seven stdlib-only helpers (`select`, `save`, `thread`, `mirror`, `queue`, `draft`, `mine`), `engine/` (the ambient tick `run.sh` + the headless prompt scaffold), and `prompts/`.
-*The following milestone is the 2026-08-30 implementation snapshot; current audit observations above supersede its working-state claims.*
-
-- **x-comms-engine v1.1 — register + review reminder MERGED to `main` (PR #2, PR #3, 2026-08-30). The working checkout runs `main`.** A launchd user agent (`ai.fero.x-comms`, daily 07:30) runs `skill/engine/run.sh` with zero Claude sessions open: it expires the queue, mines the session history for seeds, drafts finished bodies through a headless `claude -p`, and files them into a queue **outside this repo**. Sunday is a deep tick (14-day window, ≤3 drafted as one arc); every other day is ambient (3 days, ≤2 singles). A second agent (`ai.fero.x-comms-review`, daily 07:45, `skill/engine/review_reminder.sh --install`) reports on that tick and opens the review loop — armed 2026-08-30, **never yet fired from a real schedule**. Review with `python3 skill/helpers/queue.py review`. Nothing publishes itself. **D1 is proven in production** — unattended fires from 2026-08-27 on, nobody present.
-
-  **The mechanism works; the output is still not postable. The acceptance gate — one post the operator would publish — is OPEN at 13 of 13 rejected.** Merging on 2026-08-30 was a deliberate call and not a passing test: the register is strictly better than what `main` carried, and leaving it on a feature branch meant the daily production job ran from an unmerged branch where one checkout switch would silently revert the drafting rules. The gate belongs to the system being finished, not to each improvement landing.
-
-  Three causes have been found and fixed in order, each superseding the last as the binding constraint: **seed depth** (the miner read a ~1.2 KB index row while the ~23 KB session document sat beside it); **register** (`persona.local.md` §4 prescribed a ≤280-char staccato voice derived from the operator's 5 weakest posts — rebuilt 2026-08-28 from a 33-draft operator-verdicted calibration into **400–650 characters, three or four short paragraphs, framing question as the opening line only, plain-language landing**; the five laws live in `skill/engine/task-single.md` and `task-arc.md`); and now **self-graded gates**. The register works on its own terms — the 2026-08-29 queue was shape-compliant at 638 and 633 chars, four paragraphs each — and the operator killed both, for two reasons the register does not address: *hard to follow* (Law 1, "no noun the reader has not met", violated repeatedly — "a phrase I had retired", "an internal label", "the marker that kept it pending", all unintroduced) and *not what I was working on* (topic selection is recency-only and the operator's recent history is dominated by this project, so the engine keeps surfacing its own machinery). **The mechanical gates — length, anti-voice, unsourced numbers — run in code and work. The judgment gates — Reader, Pillar, Stranger, Law 1 — are graded by the same model that wrote the draft, and that is where every remaining rejection lives.** Next lever, chosen by the operator 2026-08-30: **a cold-reader check** — a second call seeing only the finished body, no seed and no persona, asked whether it can follow it on one pass and to name everything it cannot picture. Not yet built.
-
-  **Open, not blocked:** the Sunday deep tick timed out on 2026-08-30 (`engine:timeout`, three seeds lost in one call) — the first deep tick ever run, so arc mode has never completed a real model call. Problem statement in `planning/handoffs/TRANSITION_deep-tick-timeout_2026-08-30.md`; deliberately no fix proposed, and the first move is instrumentation, since nothing records how long a call takes. Also still unexercised: smoke item 3 (approve → corpus append → copy), because no draft has ever been approved; and the corpus loop does not reach the ambient prompt, so approvals would not compound yet.
-
-  Authoritative design: the local, gitignored `planning/specs/SPEC-x-comms-engine.md` rev 2, amended at D9 and superseded on length/register by §4 of the persona. Per-commit history lives in `planning/progress.md` + `planning/findings.md` and the commit messages — **not here**.
-- **Pre-mortem:** `strategy/PreMortem-session-publisher-2026-05-11.md` documents 4 Tigers + 3 Elephants identified before the build window and how each was resolved.
-- **Stage 5.5 corpus-mirror (feature thread):** Phase C shipped 2026-05-16. `skill/helpers/mirror.py` is a pure-loader helper (parses `examples.local.md`, drops `near_duplicate_of` cluster non-reps, emits JSON). `SKILL.md` carries the new Stage 5.5 section (load → infer+select → rewrite → prompt → response). `examples-template.md` documents `guide_compliance` + `near_duplicate_of`. **Pivot:** SPEC v0.2 §4 deterministic tag-overlap pipeline superseded — Claude does semantic selection in Stage 5.5 prose. Rationale annotated inline in the SPEC + in `planning/findings.md`. Next: first end-to-end run with new stage will calibrate register-fit honesty. Authoritative design: SPEC v0.2 (annotated) + SKILL.md §5.5 (shipped behavior).
-- **Drafting guide v1.3 shipped 2026-05-18** based on `xai-org/x-algorithm` (Jan 2026) signal analysis. Added Layer 1 rule 16 (link placement — link in first reply, not body, to avoid 30–90% reach loss) and new "Post-publish protocol" section (author-reply within 1h + posting-window timing). Layer 2 renumbered 17–24 (was 16–23); 9 corpus notes updated. SKILL.md Stage 7 now includes `author_replied: yes/no` tracking. Delta artifact: `strategy/DELTA_algo-vs-drafting-guide-2026-05-18.md`. Edits E4 (H5 tone caveat) and E5 (rule 5 density) deferred.
+- **Repository audit — 2026-09-07:** [strategy/REPOSITORY_AUDIT.md](strategy/REPOSITORY_AUDIT.md) is a proposed complete delivery route, independently reviewed and refuted (all findings resolved).
+- **Task plan, findings, progress:** local and gitignored (`.gitignore:39–41`; § Working-state discipline). Dated working state from here moved on 2026-09-23 to the Mac Studio clone's `planning/progress.md`; the engine overview, smoke tests and gotchas moved to `docs/ambient-engine.md`.
 
 ## Operating principles (deterministic — apply on every session)
 
@@ -80,16 +62,19 @@ As of the 2026-09-07 audit (strategy/REPOSITORY_AUDIT.md): drafts 10 queued, 13 
 
 ### Working-state discipline
 
-Four locations carry the project's working state. Update discipline:
+Four locations carry the project's working state.
+Two writers keep them current at the close of a session, and both cite the template's block (github-ops `templates/AGENTS-template.md` § Working-state discipline), which this one adapts, rather than restate it: the session-close procedure (`~/.config/agent-rules/procedures/session-close.md`) is the attended implementation, run by whichever agent holds the session, and `session-factory/contracts/wrapup-executor.md` is the factory's, rendered from the Linear trail at chain close.
+Update discipline:
 
 | File | Content | Cadence |
 |------|---------|---------|
-| `AGENTS.md` § Project context | Current state line — phase, gates, blockers | Same session as the state change (not deferred to next session) |
+| `AGENTS.md` § Project context | SHORT current-state snapshot: the strategic frame above the `fab:state` markers, ONE paragraph of current state between them. REPLACE the marked state paragraph in place — never append per-session narrative; history → `progress.md` | Same session as the state change (not deferred to next session). The size guard (`hooks/check_context_size.py`, run by the pre-commit hook wherever `hooks/` is armed with both files) enforces the ceilings — the writer rule and the guard are one policy seen from two sides. |
 | `planning/task_plan.md` | Phase state machine — current phase, history, gates, decisions | At every phase boundary |
 | `planning/progress.md` | Chronological session log (most recent on top) | End of every session — no exceptions |
 | `planning/findings.md` | Session-level reframes, pivots, gotchas, re-evaluation list | Mid-session via 2-Action Rule + end-of-session catch-up |
 
 Note: the three `planning/*.md` files are gitignored in this public repo. They exist locally and the discipline applies the same way.
+Each clone keeps its own copies: the Mac Studio's and the MacBook's are separate, unsynced files that git does not carry (`.gitignore:39–41`). This repository keeps `progress.md` newest-first, not the template's newest-last.
 
 Three discipline rules tie these to action:
 
@@ -104,6 +89,18 @@ Three discipline rules tie these to action:
   files are the same log scoped to this project. If a session shipped no
   project content (meta-work only), still append a one-line entry noting
   that — silence creates currency doubt.
+
+#### Who writes at close
+
+| Close | Writer | What it writes | When |
+|-------|--------|----------------|------|
+| Attended close | any runtime running the session-close procedure (`~/.config/agent-rules/procedures/session-close.md`) | the session record under `FERO-Log/sessions/`, and the four locations above — of which it can commit only `AGENTS.md` here | at the end of a work session — proposed by the agent at a natural end, or invoked by the operator, a boot's exit block or a skill's last step |
+| Factory chain close | `session-factory/contracts/wrapup-executor.md` | the four locations above, rendered from the Linear trail, and a header-only session record — of which it can commit only `AGENTS.md` here; the trio is not in its worktree and is never force-added (`.gitignore:39–41`) | once per chain, when the factory closes it |
+
+In this repository the delivery block's example `set --` line must name `AGENTS.md` alone: with the ignored trio on disk, `git add -- planning/progress.md planning/findings.md AGENTS.md` exits 1 (it stages `AGENTS.md` and refuses the two ignored paths), and the block then skips the commit (measured 2026-09-23 in a scratch clone).
+The frame outside the `fab:state` markers is never touched by the factory, and by an attended close only when the operator asks in that session.
+The close commits on the session's branch; a ruled `main` or a runtime account means a branch and a pull request.
+How each writer edits — markers, size bounds, commit and push — lives in the writer, not here.
 
 ### Security boundaries
 
@@ -155,9 +152,7 @@ This is a Claude Code skill, not a standalone CLI.
 - **Install:** `ln -s <repo>/skill ~/.claude/skills/session-publisher` — Claude Code auto-loads `SKILL.md` on next session start.
 - **Configure notes dir:** export `SESSION_PUBLISHER_NOTES_DIR=/your/notes/path` in your shell profile (defaults to `~/personal-notes`).
 - **Smoke-test helpers:** `python3 skill/helpers/select.py --days 7`, `python3 skill/helpers/thread.py --days 7`, `python3 skill/helpers/save.py "<session_source>" --body "test"`, `python3 skill/helpers/queue.py --validate`.
-- **Smoke-test the drafting engine without spending a model call:** `X_COMMS_FORCE_SEED=1 python3 skill/helpers/draft.py --dry-run` assembles the prompt and reports its size; `--stub-response <file>` feeds a canned model reply through the full gate + write path; `X_COMMS_CLI=<script>` swaps the CLI for one that hangs or exits non-zero, which is how the timeout and exit-code branches are tested. A real end-to-end run is `X_COMMS_FORCE_SEED=1 python3 skill/helpers/draft.py --queue-dir /tmp/q` (add `--mode arc` for the Sunday batch path).
-- **Smoke-test one ambient tick without a scheduler:** `skill/engine/run.sh --mode ambient` (or `--mode deep` for the arc path) runs the real pipeline against whatever `SESSION_PUBLISHER_NOTES_DIR` points at. Point that at a scratch directory holding a `SESSION_INDEX.md` and set `X_COMMS_CLI` to a stub script that prints a `{"is_error": false, "result": "<json>"}` envelope, and every branch — idle, capacity skip, expire, gate rejection, CLI failure — is exercisable for free. `X_COMMS_LOG_DIR` isolates the tick log.
-- **Arm the 07:45 review nag:** `bash skill/engine/review_reminder.sh --install` (`--status`, `--uninstall`; no argument prompts immediately). It reports on the 07:30 tick and opens the review loop — it never drafts. Every branch is reachable without a scheduler: `X_COMMS_REVIEW_LOG_DIR` isolates its log (and is ignored by `--install`), `X_COMMS_REVIEW_WAIT=0` and `X_COMMS_REVIEW_GRACE=0` skip the two tick waits, `X_COMMS_REVIEW_STALE_HOURS` moves the alert threshold, and a stub `osascript` earlier in `PATH` stands in for the dialog. That is how all eight engine statuses, the three invisible-queue states, clock skew, a TCC denial and both wait orderings were each exercised.
+- **Engine smoke tests** (drafting, one tick, the review nag's install) moved on 2026-09-23 to `docs/ambient-engine.md` with the engine overview and gotchas.
 - **No build pipeline.** Helpers are standalone Python 3.11+ scripts; stdlib only. `run.sh` and `review_reminder.sh` are bash 3.2-compatible and shellcheck-clean at `-S warning`.
 - **No test suite.** Smoke tests are inline and documented above. Friction-driven extension only.
 
@@ -165,6 +160,7 @@ This is a Claude Code skill, not a standalone CLI.
 
 Hard-won rules. Each one cost a bug. The *stories* behind them are in `planning/findings.md`;
 what follows is only what you must not forget.
+The engine's reference gotchas (the headless quota floor and per-tick yield, the first two `launchd` gotchas, the 07:45 review nag) moved on 2026-09-23 to `docs/ambient-engine.md` with the engine overview and smoke tests.
 
 ### Paths and file formats
 
@@ -234,19 +230,6 @@ modules. Both filenames are fixed by contract — don't rename, work around:
   drafting model. **The D6 anti-leak gate is the only barrier between that and a published body.**
   Nothing leaks today; that is *why* the gate isn't optional, and why new leak shapes are worth
   adding whenever one appears in those files.
-- **There is a fixed floor of ~55k cached input tokens per call, and it is quota, not money.** The
-  CLI reports `total_cost_usd` (measured `0.559385` for a nine-token reply), but with no API key,
-  auth token or `apiKeyHelper` it authenticates via subscription OAuth — so that figure is notional.
-  **Never convert it to monthly spend without checking which credentials are in play.** The real
-  cost is that ticks consume the same usage windows as your own sessions, which makes tick timing
-  (D8) the lever alongside `X_COMMS_MODEL` (D7). `--bare` cuts the floor but forces API-key auth,
-  which D1 rules out.
-- **Expect a low yield per tick, by design.** Eight forced ticks on the fixture gave five anti-voice
-  rejections (the model reaches for "we"), two unsourced-number rejections, one clean draft. A tick
-  attempts exactly `--max-drafts` seeds (2 ambient / 3 deep) because `draft.py` drops anything past
-  `seeds[:max_drafts]`. So `drafted=0` runs are the gates working, not a fault — and a single red
-  forced run is a coin flip, not a regression. Raising throughput means retrying into the next seed
-  after a gate skip: a `draft.py` change, not a `run.sh` one.
 - **`mine.py`'s repo matching is exact-slug-only, on purpose.** Tokenizing a tag like
   `voice-discovery` into `voice` + `discovery` lets `voice` substring-match `voice-notes` and
   silently attribute one project's commits to another. Whole-tag equality against dirnames, never
@@ -300,14 +283,6 @@ modules. Both filenames are fixed by contract — don't rename, work around:
 
 ### launchd
 
-- **`launchctl setenv` does not reach a `gui/` agent's environment.** `getenv` reports the value and
-  the job never sees it — verified across a full `bootout`/`bootstrap` cycle. To pass a one-off flag,
-  use the marker-file idiom: `run.sh` consumes a one-shot `$X_COMMS_LOG_DIR/force-seed`, and the tick
-  line reports `forced=1`. Editing the plist to arm a test leaves the engine armed — don't.
-- **launchd opens `StandardOutPath` before exec'ing the program**, so a script that `mkdir -p`s its
-  own log directory cannot rescue its own first run's redirect. Hence the D9 tick line is written
-  directly to `tick.log`, never echoed to stdout: the line that says what happened must not be the
-  line that disappears. stdout/stderr remain the helpers' diagnostic channel.
 - **A tick-log field is only parseable if reason codes can't contain its separator.** `rejected=` is
   comma-joined and most codes are clamped slugs — but `gate:unsourced_number:` appends digit runs
   *comma-separated*. `run.sh` rewrites commas to `;`, collapses whitespace and caps length, in
@@ -316,42 +291,7 @@ modules. Both filenames are fixed by contract — don't rename, work around:
 - **That same code is the one place body-derived content reaches the tick line** — a considered
   exception to "bodies never logged" (the digits are the diagnosis, and you never see the body
   otherwise). It is why the log stays local rather than treated as publishable-anywhere.
-
-### The 07:45 review nag (`review_reminder.sh`)
-
-- **An AppleScript string literal cannot contain a raw newline.** It is a *compile* error (−2741),
-  so the dialog never appears — and a dialog that never appeared is indistinguishable from one the
-  operator dismissed. The sibling `rls_reminder.sh` never hit this because it assembles its text in
-  AppleScript with `& return &`; ours assembles in bash, so `as_str` splices multi-line text into
-  `"line" & return & "" & return & "line"`. Any change to dialog copy must be re-checked with
-  `osacompile` — **from outside the Claude Code sandbox**, which blocks scripting-addition
-  terminology and fails even `display dialog "hello"`, producing a false negative that looks exactly
-  like a real syntax error.
-- **`ask` is always called inside a command substitution, so it cannot report through a variable.**
-  Capturing osascript's stderr into `DIALOG_ERR=` was silently discarded with the subshell and every
-  failure logged as "no stderr" — reintroducing, inside the reporting channel, the exact blindness
-  the capture exists to prevent. It writes to `DIALOG_ERR_FILE`; `open_terminal` reuses that file
-  rather than calling `mktemp`, because a failed `mktemp` takes the redirect down with it and bash
-  then reports "could not launch Terminal" for a Terminal that was never asked.
-- **The health test is an allowlist, and a denylist there was a real hole.** `run.sh` writes EIGHT statuses — `ok idle no_output capacity failed locked interrupted incomplete` — and testing only for `failed` passed the last three as healthy. `locked` is the worst: a wedged engine re-emits it every morning **with a fresh timestamp**, so the staleness ceiling never trips and the reminder stays silent forever, which is the exact failure it exists to end. `interrupted` (lid closed mid-tick) repeats the same way. Allowlist the healthy four so any status `run.sh` grows later fails closed.
-- **`queue.py list` exits 0 and reports `counts: {}` in three states that are not "nothing to review":** the queue directory absent (it lives on a synced drive — unmounted looks exactly like empty), the directory present but unreadable (`Path.glob` swallows `PermissionError`), and entries that do not parse (`cmd_list` files those under `unreadable` and excludes them from `counts`). Reading config from the engine plist prevents plist *drift*; it does not prevent any of these. Take `queue_dir` and `unreadable` from the same JSON and speak up rather than counting zero.
-- **Quiet is a state, and it is logged.** On a healthy morning with an empty queue there is no
-  dialog — so the log line is the only evidence the job ran at all, and "silent because fine" and
-  "silent because broken" are otherwise the same observation. Hence `~/Library/Logs`, never `/tmp`.
-- **Staleness is measured in hours, not in "did it run today".** `StartCalendarInterval` defers to
-  the next wake, so opening the lid at 14:00 fires the 07:30 tick and this 07:45 job at nearly the
-  same moment in an order launchd does not promise. A date comparison cries failure on every late
-  wake; the 36-hour ceiling plus a capped poll while `ai.fero.x-comms` is running tolerates the race.
-  An **unparseable** timestamp counts as unhealthy, not unknown — this script may cry wolf, it may
-  not go quiet.
-- **It restates none of the engine's configuration.** Notes dir, interpreter, tick-log path and the
-  engine's own `StartCalendarInterval` are read out of `ai.fero.x-comms.plist` at run time. A second copy drifts, and the failure it produces
-  is a reminder counting an empty queue in a directory the engine never writes to, reporting
-  "nothing today" forever. Environment variables take precedence over the plist purely as the test
-  seam; this job's own plist sets nothing but `PATH`.
-- **`PlistBuddy` prints "File Doesn't Exist, Will Create:" to stdout, not stderr.** Reading a baked
-  path from a missing plist therefore captures that sentence as the path and reports a mismatch that
-  is really a missing install. Guard the read on the file existing.
+- **Both installed jobs execute this mutable checkout** (`strategy/REPOSITORY_AUDIT.md:81`), so until the runtime installation is pinned or snapshotted a branch switch here can change unattended behavior.
 
 ### Coupled counts (grep these together or they drift)
 
