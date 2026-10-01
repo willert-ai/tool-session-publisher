@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-mine.py — the ambient miner: scan SESSION_INDEX + git logs, emit scored seeds.
+mine.py — the ambient miner: scan the session records + git logs, emit scored seeds.
 
-Reads <notes>/SESSION_INDEX.md, windows it to `--days` (inclusive cutoff, same
+Asks the session-close tool for the records (`session_records.py list` — the
+generated SESSION_INDEX.md is retired, #129), windows them to `--days` (inclusive cutoff, same
 arithmetic as select.py's own `--days` — N+1 calendar days including today),
 drops anything already handled (a post already saved for it, or any ledger
 event ever recorded for it), scores what survives, and prints the winners as
@@ -34,7 +35,7 @@ out of scope here.
 
 `text` — the only place draft.py's number gate lets numbers come from — is
 built from the session's own **document** where one can be resolved, and
-falls back to the SESSION_INDEX row when it cannot.
+falls back to the record's listed row when it cannot.
 
 That split is the whole point of this file, so it is worth stating plainly.
 The index row is written by the wrap-up skill to answer *"what did I do this
@@ -51,20 +52,25 @@ and a stable operator-facing reference.
 Three sources, in order:
   1. the session document's narrative sections (see `extract_narrative`),
      resolved from the row by date + fuzzy title/slug match;
-  2. the SESSION_INDEX row's own outcome/insight columns, **iff** no
+  2. the listed row's own outcome/insight values, **iff** no
      document could be resolved — a missing or ambiguous document degrades
      to the pre-2026-08-28 behaviour and never fails the tick;
   3. best-effort `git log` subjects from a same-day match in a locally
      scanned repo, appended either way. A miss there just means a plainer
      `text`; it is enrichment, not the contract.
 
-SESSION_INDEX schema: 8 positional columns, no header — same parse contract
-`select.py` documents. Duplicated here rather than imported: `select.py`
+The records: `session_records.py list` prints one JSON object per record whose
+date, title, type, outcome and tags are the retired index's cells byte for
+byte (title seed first, whitespace collapsed, '|' as '/', '-' for empty), so
+`session_source_key` is unchanged; `ledger` drops the old cell's markdown link. Insight and Asana were always '-' in the generated index and stay
+'-'. The loader is duplicated in `select.py` rather than imported: `select.py`
 shadows the stdlib `select` module (see AGENTS.md), and this file shells out
-to `git`, which needs `select` via `subprocess` -> `selectors`.
+to `git` and the records tool, which need `select` via `subprocess` -> `selectors`.
 
 Environment:
-    SESSION_PUBLISHER_NOTES_DIR   notes root (default ~/personal-notes)
+    SESSION_PUBLISHER_NOTES_DIR   notes root (default ~/personal-notes) — the FERO-Log
+    SESSION_RECORDS_TOOL          the session-close tool (default
+                                   ~/.config/agent-rules/procedures/session-close/session_records.py)
     SESSION_PUBLISHER_TZ          ledger timestamp zone (read by queue.py)
     X_COMMS_REPO_DIRS             colon-separated parent dirs scanned for
                                    git-log enrichment (default
@@ -74,23 +80,23 @@ Smoke tests:
     python3 mine.py --days 14
     python3 mine.py --days 3 --today 2026-08-25
 
-`--index` and `--queue-dir` isolate SESSION_INDEX and the ledger for testing.
-Session-document lookup follows `--index` (documents live in `sessions/` beside
-the index, so its parent directory is the notes root), but posts/ dedup always
-reads the real $NOTES_DIR/posts/x/ — there is no separate override for it, and
-those two therefore diverge under a bare `--index`. A fully isolated test run
-needs SESSION_PUBLISHER_NOTES_DIR pointed at a scratch dir too:
+`--fero-log` and `--queue-dir` isolate the records and the ledger for testing.
+Session-document lookup follows `--fero-log` (documents live in its
+`sessions/`), but posts/ dedup always reads the real $NOTES_DIR/posts/x/ —
+there is no separate override for it, and those two therefore diverge under a
+bare `--fero-log`. A fully isolated test run needs SESSION_PUBLISHER_NOTES_DIR
+pointed at a scratch dir too:
 
     SESSION_PUBLISHER_NOTES_DIR=/tmp/notes \\
-        python3 mine.py --days 14 --index /tmp/SESSION_INDEX.md --queue-dir /tmp/q
+        python3 mine.py --days 14 --fero-log /tmp/notes --queue-dir /tmp/q
 
 The `sessions/` case (W3, LD-W3-11 — the lookup is `notes_base / "sessions"`
-only; a document at the notes root is no longer found): a two-row index dated
+only; a document at the notes root is no longer found): two records dated
 on consecutive days D1 = D2 - 1, D1's document at the scratch root, D2's under
 the scratch `sessions/`, an empty scratch `posts/x/`, then
 
     SESSION_PUBLISHER_NOTES_DIR=$TMPDIR/notes \\
-        python3 mine.py --index $TMPDIR/notes/SESSION_INDEX.md --today D2 --days 1 \\
+        python3 mine.py --fero-log $TMPDIR/notes --today D2 --days 1 \\
         --queue-dir $TMPDIR/notes/q
 
 prints the D2 seed with "has_document": true and the D1 seed with false. Each
@@ -125,7 +131,16 @@ HELPERS_DIR = Path(_HELPERS_DIR)
 NOTES_BASE = Path(
     os.environ.get("SESSION_PUBLISHER_NOTES_DIR", str(Path.home() / "personal-notes"))
 )
-SESSION_INDEX = NOTES_BASE / "SESSION_INDEX.md"
+# The session records come from the session-close tool's read-only `list`
+# (#129: the generated SESSION_INDEX.md is retired). Every fleet Mac carries it
+# at this path; SESSION_RECORDS_TOOL overrides it for a test.
+RECORDS_TOOL = Path(
+    os.environ.get(
+        "SESSION_RECORDS_TOOL",
+        str(Path.home() / ".config/agent-rules/procedures/session-close/session_records.py"),
+    )
+)
+RECORDS_TIMEOUT = 60
 POSTS_X_DIR = NOTES_BASE / "posts" / "x"
 # Same variable queue.py reads for ledger timestamps and git_log_subjects reads
 # for day-boundary enrichment — "today" has to mean the same day everywhere in
@@ -136,10 +151,6 @@ DEFAULT_REPO_PARENTS = ("~/tools", "~/apps", "~/scripts", "~/reference")
 GIT_TIMEOUT = 4
 MAX_GIT_SUBJECTS = 5
 DEFAULT_MAX_SEEDS = 12
-
-# Match a SESSION row: pipe + space + ISO date + space + pipe — same contract
-# select.py parses against (session_source_key format: "YYYY-MM-DD - <title>").
-ROW_PATTERN = re.compile(r"^\| \d{4}-\d{2}-\d{2} \|")
 
 # --- session-document resolution + narrative extraction ---------------------
 
@@ -436,37 +447,52 @@ def queue_module():
     return _QUEUE_MODULE
 
 
-# --- SESSION_INDEX parsing ---------------------------------------------------
+# --- the session records ----------------------------------------------------
 
 
-def parse_session_index(text: str) -> list[dict]:
-    """Parse SESSION_INDEX.md into session dicts, oldest-first as written.
+def load_sessions(fero_log: Path, since: str) -> list[dict]:
+    """The session records dated `since` or later, oldest first, as session dicts.
 
-    8 positional columns: date, title, type, outcome, insight, ledger, asana,
-    tags. Malformed rows (fewer than 8 cells) are skipped silently — same
-    behaviour as select.py, so the two tools never disagree about what a row
-    is.
+    Asks `session_records.py list` (one JSON object per record; date, title,
+    type, outcome and tags each the retired SESSION_INDEX.md's cell, byte for
+    byte). Insight and Asana were
+    always '-' in the generated index and stay '-'. Same loader as select.py,
+    so the two tools never disagree about what a session is. A missing or
+    failing tool is an error, never an empty run.
     """
+    if not RECORDS_TOOL.is_file():
+        raise EngineError("input:records_tool_missing", f"session records tool not found at {RECORDS_TOOL}")
+    if not (fero_log / "sessions").is_dir():
+        # A missing source is a failure, not a quiet day (run.sh's tick line
+        # must never read as idle when there was nothing to read).
+        raise EngineError("input:records_missing", f"no sessions/ folder in {fero_log}")
+    command = [sys.executable, str(RECORDS_TOOL), "list", "--fero-log", str(fero_log), "--since", since]
+    try:
+        done = subprocess.run(command, capture_output=True, text=True, timeout=RECORDS_TIMEOUT)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise EngineError("input:records_unreadable", str(exc)) from None
+    if done.returncode != 0:
+        raise EngineError("input:records_unreadable", done.stderr.strip()[-300:] or f"exit {done.returncode}")
     sessions = []
-    for line in text.splitlines():
-        if not ROW_PATTERN.match(line):
+    for line in done.stdout.splitlines():
+        if not line.strip():
             continue
-        parts = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(parts) < 8:
-            continue
-        date_str, title, type_, outcome, insight, ledger, asana, tags = parts[:8]
-        sessions.append(
-            {
-                "date": date_str,
-                "title": title,
-                "type": type_,
-                "outcome": outcome,
-                "insight": insight,
-                "ledger": ledger,
-                "asana": asana,
-                "tags": tags,
-            }
-        )
+        try:
+            record = json.loads(line)
+            sessions.append(
+                {
+                    "date": record["date"],
+                    "title": record["title"],
+                    "type": record["type"],
+                    "outcome": record["outcome"],
+                    "insight": "-",
+                    "ledger": record["ledger"],
+                    "asana": "-",
+                    "tags": record["tags"],
+                }
+            )
+        except (ValueError, KeyError, TypeError) as exc:
+            raise EngineError("input:records_unreadable", f"unexpected record line: {exc}") from None
     return sessions
 
 
@@ -480,7 +506,7 @@ def session_source_key(session: dict) -> str:
 def already_posted_sources() -> set[str]:
     """`session_source:` frontmatter values from every post already saved
     under <notes>/posts/x/ — same scan select.py runs, duplicated for the
-    same reason the SESSION_INDEX parser is duplicated."""
+    same reason the records loader is duplicated."""
     sources: set[str] = set()
     if not POSTS_X_DIR.exists():
         return sources
@@ -566,7 +592,7 @@ def git_log_subjects(repo: Path, day: str) -> list[str]:
     a repo anymore, timeout) returns [] — this is enrichment, not a gate.
 
     `--since`/`--until` are resolved by git in the process's `TZ`, not in
-    SESSION_INDEX's own timezone — set `TZ` from `SESSION_PUBLISHER_TZ` (same
+    the session records' own timezone — set `TZ` from `SESSION_PUBLISHER_TZ` (same
     variable queue.py reads for ledger timestamps) so a day boundary here
     means the same day it means everywhere else in this pipeline.
     """
@@ -665,13 +691,7 @@ def build_text(session: dict, git_hits: list[str], narrative: str = "") -> str:
 
 
 def run(args) -> int:
-    index_path = Path(args.index).expanduser() if args.index else SESSION_INDEX
-    if not index_path.exists():
-        raise EngineError("input:index_missing", f"SESSION_INDEX not found at {index_path}")
-    try:
-        text = index_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        raise EngineError("input:index_unreadable", str(exc)) from exc
+    fero_log = Path(args.fero_log).expanduser() if args.fero_log else NOTES_BASE
 
     if args.max_seeds < 1:
         raise EngineError("input:max_seeds", "--max-seeds must be >= 1")
@@ -685,7 +705,7 @@ def run(args) -> int:
     # about what it means would be worse than either convention alone.
     window_start = today - timedelta(days=args.days)
 
-    sessions = parse_session_index(text)
+    sessions = load_sessions(fero_log, window_start.isoformat())
     in_window = [s for s in sessions if window_start.isoformat() <= s["date"] <= today.isoformat()]
 
     posted = already_posted_sources()
@@ -703,10 +723,10 @@ def run(args) -> int:
 
     repo_index = build_repo_index(os.environ.get("X_COMMS_REPO_DIRS"))
 
-    # Session documents live in `sessions/` beside SESSION_INDEX.md, so a
-    # `--index` override relocates document lookup with it — which is what
+    # Session documents live in the FERO-Log's `sessions/`, so a `--fero-log`
+    # override relocates document lookup with the records — which is what
     # makes a fully isolated scratch run possible without a second flag.
-    notes_base = index_path.parent
+    notes_base = fero_log
 
     report = {
         "status": "ok",
@@ -732,7 +752,7 @@ def run(args) -> int:
             report["skipped_ledgered"] += 1
             continue
         if ref in seen_refs:
-            # A duplicate SESSION_INDEX row (manual edit, merge artifact)
+            # Two records with the same date and title (a re-saved record)
             # would otherwise emit two seeds sharing a seed_key — draft.py's
             # normalise_seeds rejects the *whole* run on that, dropping every
             # other legitimate seed this tick along with the duplicate.
@@ -791,7 +811,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     parser.add_argument("--days", type=int, default=7, help="window size in days (default 7)")
     parser.add_argument("--today", help="override today's date (YYYY-MM-DD); test hook")
-    parser.add_argument("--index", help="override the SESSION_INDEX.md path; test hook")
+    parser.add_argument("--fero-log", help="override the FERO-Log (records and documents); test hook")
     parser.add_argument("--queue-dir", help="override the queue directory; test hook")
     parser.add_argument(
         "--max-seeds",
