@@ -1157,7 +1157,7 @@ def cmd_add(args) -> int:
 
     seed_ref = args.seed_ref.strip()
     # The body is the only text that ever reaches X, so it gets the full gate.
-    # seed_ref is a verbatim SESSION_INDEX row that never leaves the private queue
+    # seed_ref is a verbatim session key that never leaves the private queue
     # file and is never copied to the clipboard — it is *expected* to name private
     # repos and internal work, so running the operator denylist over it rejects
     # legitimate seeds wholesale (measured against the last 200 index rows: 76%).

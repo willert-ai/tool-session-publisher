@@ -2,7 +2,8 @@
 """
 select.py — pick candidate sessions for posting.
 
-Reads <notes>/SESSION_INDEX.md, returns the last N days of sessions
+Asks the session-close tool for the records (`session_records.py list` — the
+generated SESSION_INDEX.md is retired, #129), returns the last N days of sessions
 (default 7) that are NOT already referenced by any post in
 <notes>/posts/x/*.md (anti-duplicate by `session_source` frontmatter).
 Optional focus.yaml filter at repo root.
@@ -11,8 +12,11 @@ The notes directory is resolved from the `SESSION_PUBLISHER_NOTES_DIR`
 environment variable; falls back to `~/personal-notes` when unset.
 
 SPEC §6.h (anti-duplicate), §6.i (focus filter), §6.j (7-day scope).
-SESSION_INDEX schema: 8 positional columns, no header.
-Single Path.read_text() call (E3 mitigation).
+The records: one JSON object per record from `session_records.py list` — date,
+title, type, outcome and tags each the retired index's cell byte for byte; the
+same loader as mine.py.
+SESSION_RECORDS_TOOL overrides the tool's path (default
+~/.config/agent-rules/procedures/session-close/session_records.py).
 
 Stdout: JSON list of session candidates, oldest first.
 Each item: {"date": "YYYY-MM-DD", "title": "...", "tags": "...",
@@ -26,62 +30,81 @@ Smoke tests:
 
 from __future__ import annotations
 
-import argparse
-import json
 import os
-import re
 import sys
-from datetime import date, datetime, timedelta
-from pathlib import Path
+
+# Same fix as mine.py, same reason: running this file puts its own directory at
+# sys.path[0], and `subprocess` pulls in `selectors` -> `import select`, which
+# would resolve to this very file instead of the stdlib module.
+_HELPERS_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path[:] = [p for p in sys.path if os.path.realpath(p or os.getcwd()) != _HELPERS_DIR]
+
+import argparse  # noqa: E402
+import json  # noqa: E402
+import subprocess  # noqa: E402
+from datetime import date, datetime, timedelta  # noqa: E402
+from pathlib import Path  # noqa: E402
 
 NOTES_BASE = Path(
     os.environ.get("SESSION_PUBLISHER_NOTES_DIR", str(Path.home() / "personal-notes"))
 )
-SESSION_INDEX = NOTES_BASE / "SESSION_INDEX.md"
+RECORDS_TOOL = Path(
+    os.environ.get(
+        "SESSION_RECORDS_TOOL",
+        str(Path.home() / ".config/agent-rules/procedures/session-close/session_records.py"),
+    )
+)
+RECORDS_TIMEOUT = 60
 POSTS_X_DIR = NOTES_BASE / "posts" / "x"
 
 # Repo root = parent of skill/ dir, which is parent of this file's dir.
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 FOCUS_YAML = REPO_ROOT / "focus.yaml"
 
-# Match a SESSION row: pipe + space + ISO date + space + pipe.
-ROW_PATTERN = re.compile(r"^\| \d{4}-\d{2}-\d{2} \|")
-
 # github-ops type prefixes stripped before substring match (SPEC §6.i).
 TYPE_PREFIXES = ("tool-", "app-", "scripts-", "ref-")
 
 
-def parse_session_index(text: str) -> list[dict]:
-    """Parse SESSION_INDEX.md into a list of session dicts.
+class RecordsError(Exception):
+    pass
 
-    Returns oldest-first. Each dict has: date, title, type, outcome,
-    insight, ledger, asana, tags, filename (reconstructed from date+title).
-    """
+
+def load_sessions(fero_log: Path, since: str) -> list[dict]:
+    """The session records dated `since` or later, oldest first, as session dicts
+    (date, title, type, outcome, insight, ledger, asana, tags) — same loader as
+    mine.py. Insight and Asana were always '-' in the generated index and stay
+    '-'. A missing or failing tool raises RecordsError."""
+    if not RECORDS_TOOL.is_file():
+        raise RecordsError(f"session records tool not found at {RECORDS_TOOL}")
+    if not (fero_log / "sessions").is_dir():
+        raise RecordsError(f"no sessions/ folder in {fero_log}")
+    command = [sys.executable, str(RECORDS_TOOL), "list", "--fero-log", str(fero_log), "--since", since]
+    try:
+        done = subprocess.run(command, capture_output=True, text=True, timeout=RECORDS_TIMEOUT)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RecordsError(str(exc)) from None
+    if done.returncode != 0:
+        raise RecordsError(done.stderr.strip()[-300:] or f"exit {done.returncode}")
     sessions = []
-    for line in text.splitlines():
-        if not ROW_PATTERN.match(line):
+    for line in done.stdout.splitlines():
+        if not line.strip():
             continue
-        parts = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(parts) < 8:
-            # malformed row — skip silently
-            continue
-        date_str, title, type_, outcome, insight, ledger, asana, tags = parts[:8]
-        # reconstructed filename pattern used by wrap-up skill
-        # (SESSION files follow `YYYY-MM-DD - SESSION_<title>.md`).
-        # We do not require the filename to exist on disk; it is the
-        # canonical key used in `session_source:` frontmatter of posts.
-        sessions.append(
-            {
-                "date": date_str,
-                "title": title,
-                "type": type_,
-                "outcome": outcome,
-                "insight": insight,
-                "ledger": ledger,
-                "asana": asana,
-                "tags": tags,
-            }
-        )
+        try:
+            record = json.loads(line)
+            sessions.append(
+                {
+                    "date": record["date"],
+                    "title": record["title"],
+                    "type": record["type"],
+                    "outcome": record["outcome"],
+                    "insight": "-",
+                    "ledger": record["ledger"],
+                    "asana": "-",
+                    "tags": record["tags"],
+                }
+            )
+        except (ValueError, KeyError, TypeError) as exc:
+            raise RecordsError(f"unexpected record line: {exc}") from None
     return sessions
 
 
@@ -153,7 +176,7 @@ def already_posted_sources() -> set[str]:
 def session_source_key(session: dict) -> str:
     """Canonical `session_source` identifier used in post frontmatter.
 
-    Format: "YYYY-MM-DD - <title from SESSION_INDEX>"
+    Format: "YYYY-MM-DD - <title from session_records.py list>"
     NO `.md` suffix. NO `SESSION_` prefix.
 
     This is the contract between select.py (which produces the key) and
@@ -194,17 +217,6 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    if not SESSION_INDEX.exists():
-        print(
-            json.dumps(
-                {
-                    "error": "SESSION_INDEX.md not found",
-                    "path": str(SESSION_INDEX),
-                }
-            )
-        )
-        return 1
-
     today = (
         datetime.strptime(args.today, "%Y-%m-%d").date()
         if args.today
@@ -212,8 +224,11 @@ def main() -> int:
     )
     cutoff = today - timedelta(days=args.days)
 
-    text = SESSION_INDEX.read_text()  # single read — E3 mitigation
-    sessions = parse_session_index(text)
+    try:
+        sessions = load_sessions(NOTES_BASE, cutoff.isoformat())
+    except RecordsError as exc:
+        print(json.dumps({"error": "session records unavailable", "detail": str(exc), "tool": str(RECORDS_TOOL)}))
+        return 1
 
     # window filter
     in_window = []

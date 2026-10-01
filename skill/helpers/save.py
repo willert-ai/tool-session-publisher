@@ -15,7 +15,7 @@ Usage:
 
 Exactly one of --body, --body-file, --body-stdin is required.
 
-The <session_source> key is the canonical SESSION_INDEX row identifier:
+The <session_source> key is the canonical session identifier:
 "YYYY-MM-DD - <title>" — no .md suffix, no SESSION_ prefix. select.py and
 save.py MUST agree on this format for anti-duplicate to work (SPEC §6.h).
 

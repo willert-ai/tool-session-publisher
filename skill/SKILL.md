@@ -87,18 +87,18 @@ the author maintains. To use it as-is, you need:
    manual notes, journal exports, a CLI script. Today's session must
    exist for the skill to ground the draft in today's work.
 
-2. **A SESSION_INDEX.md ledger.** A single file at
-   `$NOTES_DIR/SESSION_INDEX.md` containing an append-only `## Sessions`
-   section with pipe-delimited rows of the form:
+2. **The session-close tool's record list.** `select.py` and `mine.py` run
+   `~/.config/agent-rules/procedures/session-close/session_records.py list
+   --fero-log $NOTES_DIR` (`SESSION_RECORDS_TOOL` overrides the path), which
+   prints one JSON object per session record, oldest first:
 
    ```
-   | YYYY-MM-DD | <title> | <type> | <outcome> | <insight> | <ledger> | <asana> | <tags> |
+   {"date": "YYYY-MM-DD", "title": "<title>", "type": "<type>", "outcome": "<outcome>", "tags": "<tags>", "ledger": "<ledgers/file or ->", "file": "<record file>"}
    ```
 
-   Eight positional columns, **no header row**. `select.py` parses lines
-   matching `^\| \d{4}-\d{2}-\d{2} \|` and extracts position 1 (date),
-   position 2 (title), and position 8 (tags). The other columns can be
-   empty for purposes of this skill.
+   `select.py` uses date, title and tags. (Until 2026-10-01 this was a
+   generated `$NOTES_DIR/SESSION_INDEX.md`; it is retired, and `list` carries
+   the same values.)
 
 3. **A `$NOTES_DIR/posts/x/` directory.** The first invocation creates
    it automatically; `save.py` calls `Path.mkdir(parents=True, exist_ok=True)`
@@ -108,10 +108,10 @@ the author maintains. To use it as-is, you need:
 
 Two paths:
 
-- **Build an equivalent.** A 50-line wrap-up script can produce both
-  the SESSION files and append a row to SESSION_INDEX.md at the end of
-  each Claude Code session you want to post about. The schema above is
-  the contract.
+- **Build an equivalent.** A 50-line wrap-up script can produce the
+  SESSION files at the end of each Claude Code session you want to post
+  about, and a script answering `list` with the JSON lines above is the
+  rest. The schema above is the contract.
 
 - **Fork and replace Stage 1.** Strip the `select.py` call out of
   SKILL.md and replace it with "paste today's session content here."
@@ -121,7 +121,7 @@ Two paths:
 
 ### Pre-flight check
 
-If today's row is missing from SESSION_INDEX, the skill warns the
+If today's session record is missing, the skill warns the
 operator and offers to proceed on past-7-days context alone — so a
 single missing day is not a hard error.
 
@@ -145,11 +145,11 @@ prose.
 1. Run `python3 ~/.claude/skills/session-publisher/helpers/thread.py --days 7`.
    Parse the JSON output to get past-7-days posts plus reaction recap.
 2. Run `python3 ~/.claude/skills/session-publisher/helpers/select.py --days 7`.
-   Parse the JSON output to get candidate sessions from `SESSION_INDEX.md`,
+   Parse the JSON output to get candidate sessions from the session records,
    anti-duplicate filtered, optionally focus-filtered.
 3. Identify today's session by date inside the `candidates` list.
-4. If today's row is missing, tell the operator:
-   > Today's session wrap-up not found in SESSION_INDEX. Run `/wrap-up`
+4. If today's record is missing, tell the operator:
+   > Today's session wrap-up not found among the session records. Run `/wrap-up`
    > first, or say "proceed" to draft from the last 7 days only.
 
 ### Stage 2 — Narrative-thread recap (+ reaction recap if annotated)
@@ -177,7 +177,7 @@ Never fail on missing annotations. Reaction recap is value-add when present.
 ### Stage 3 — Topic recommendation
 
 Read the body of today's session wrap-up file (look up its full path under
-`$NOTES_DIR/sessions/` based on the date + title from the SESSION_INDEX row).
+`$NOTES_DIR/sessions/` based on the candidate's date + title).
 
 **Optional enrichment — recent reflections.** If you keep a recurring
 reflections file (weekly review, end-of-day journal, retrospective notes),
@@ -389,7 +389,7 @@ Call:
 python3 ~/.claude/skills/session-publisher/helpers/save.py "<session_source>" --body "<approved post body>"
 ```
 
-`<session_source>` is the canonical SESSION_INDEX row key — format
+`<session_source>` is the canonical session key — format
 **`YYYY-MM-DD - <title>`**. No `.md` suffix. No `SESSION_` prefix.
 
 Use the exact `session_source` value already emitted by `select.py` for
@@ -485,7 +485,7 @@ the `Bash` tool. Each emits JSON on stdout.
 - **`helpers/thread.py`** — Stage 1. Reads past-N-days posts from
   `$NOTES_DIR/posts/x/`, parses frontmatter, returns narrative-thread +
   reaction recap.
-- **`helpers/select.py`** — Stage 1. Reads `$NOTES_DIR/SESSION_INDEX.md` (notes dir resolved from `$SESSION_PUBLISHER_NOTES_DIR` env var, default `~/personal-notes`),
+- **`helpers/select.py`** — Stage 1. Reads the session records through `session_records.py list` (notes dir resolved from `$SESSION_PUBLISHER_NOTES_DIR` env var, default `~/personal-notes`),
   returns candidate sessions (past-N-days, focus-filtered if
   `focus.yaml` exists at repo root, anti-duplicate against existing
   posts).

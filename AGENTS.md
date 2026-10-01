@@ -171,11 +171,12 @@ The engine's reference gotchas (the headless quota floor and per-tick yield, the
 - **Never shell-expand a notes path.** It contains spaces, parentheses and `@`. Use `pathlib.Path`
   throughout; define `NOTES_BASE` once at the top of each helper. Unquoted `subprocess` /
   `os.system` args break silently.
-- **`SESSION_INDEX.md` has no header row.** `## Sessions` starts pipe-delimited rows directly —
-  8 positional columns: `| date | title | type | outcome | insight | ledger | asana | tags |`.
-  Match `\| \d{4}-\d{2}-\d{2} \|`, read by position ([1] date, [2] title, [8] tags).
-  `select.py` reads the whole file in one `read_text()` — not streaming, which sidesteps
-  concurrent-append races.
+- **The sessions come from `session_records.py list`, never a file.** The generated
+  `SESSION_INDEX.md` is retired (#129, 2026-10-01); `select.py` and `mine.py` each run the
+  session-close tool's `list` (one JSON object per record — date, title, type, outcome, tags,
+  ledger, file; date, title, type, outcome and tags each the old index's cell, so the
+  `<date> - <title>` key is unchanged). A missing tool, a missing `sessions/` folder or a failing
+  tool is a loud error, never an empty run.
 - **`SKILL.md` frontmatter must match Claude Code's convention exactly** (`name`, `version`,
   one-sentence `description`). Wrong format = the skill vanishes from the list with no error.
 - **`private-terms.local.md`: every line starting with `- ` is a denylist term** — its prose
@@ -242,8 +243,8 @@ modules. Both filenames are fixed by contract — don't rename, work around:
 
 ### The seed's source material
 
-- **The `SESSION_INDEX.md` row and the session document answer different questions — only the
-  document is postable.** The row is written by the wrap-up skill for "what did I do this week",
+- **The session's listed row and the session document answer different questions — only the
+  document is postable.** The row comes from the record's header, written by the wrap-up skill for "what did I do this week",
   so it is a conclusion with the journey already compressed out; feeding it to a drafting model
   bought nine drafts about tests and reviews, rejected 9 of 9. `mine.py` builds `text` from the
   document's narrative sections; the row survives as `seed_ref` **only**, which is what it is good

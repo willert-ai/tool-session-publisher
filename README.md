@@ -57,9 +57,9 @@ The symlink must resolve to the project's `skill/` directory.
   `SESSION_PUBLISHER_NOTES_DIR` environment variable (defaults to
   `~/personal-notes`). It will receive `posts/x/YYYY-MM-DD_post-NNN.md`
   drafts.
-- A `SESSION_INDEX.md` ledger inside that notes directory, plus daily
-  `YYYY-MM-DD - SESSION_<title>.md` session files in its `sessions/`
-  folder. The skill was built
+- Daily `YYYY-MM-DD - SESSION_<title>.md` session files in that notes
+  directory's `sessions/` folder, listed by the session-close tool's
+  `session_records.py list`. The skill was built
   around the author's session-archive infrastructure — see
   [`skill/SKILL.md`](skill/SKILL.md) pre-conditions for the exact schema
   and two paths to adapt the skill if you don't already keep an
@@ -116,12 +116,12 @@ session-publisher/
 ├── skill/
 │   ├── SKILL.md                    # the skill itself
 │   ├── helpers/
-│   │   ├── select.py               # candidate sessions from SESSION_INDEX
+│   │   ├── select.py               # candidate sessions from the session records
 │   │   ├── thread.py               # narrative thread from posts/x/
 │   │   ├── save.py                 # write approved draft to $NOTES_DIR
 │   │   ├── mirror.py               # load the private register corpus
 │   │   ├── queue.py                # the ambient queue contract + review loop
-│   │   ├── mine.py                 # SESSION_INDEX + git logs → scored seeds
+│   │   ├── mine.py                 # session records + git logs → scored seeds
 │   │   └── draft.py                # seeds → finished bodies, headless
 │   ├── engine/
 │   │   ├── run.sh                  # one ambient tick, driven by launchd

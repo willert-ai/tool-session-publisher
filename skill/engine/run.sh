@@ -188,7 +188,7 @@ STATUS="incomplete"
 REASON="-"
 SEEDS_MINED="-"
 # How many of the mined seeds carried a resolved session document rather than
-# degrading to the thin SESSION_INDEX row. `mine.py` degrades silently by
+# degrading to the thin listed row. `mine.py` degrades silently by
 # design — a missing or ambiguous document must never fail a tick — so without
 # this field a regression in document resolution (a wrap-up naming-convention
 # change, a dropped `SESSION_` marker) would produce ticks that read exactly
